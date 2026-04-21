@@ -1,6 +1,6 @@
 # R2-2：Node Catalog Schema
 
-> **版本**: v1.0.0 ｜ **狀態**: Draft ｜ **前置**: D0-2, C1-2
+> **版本**: v1.1.0 ｜ **狀態**: Draft ｜ **前置**: D0-2, C1-2
 
 ## Purpose
 
@@ -48,6 +48,7 @@
 | `category` | string | ✅ | xlsx 類別欄位；用於 embedding 文本 |
 | `description` | string | ✅ | 中文或英文描述，用於 embedding |
 | `default_type_version` | number \| null | ⬜ | 若已知最新版本則填；否則 null |
+| `has_detail` | boolean | ⬜ | 預設 `false`；當 `data/nodes/definitions/{slug}.json` 存在時為 `true`。**不寫入 xlsx 來源**，由 ingest 階段補齊（見 §6 Ingest）。 |
 
 對應 Pydantic：`NodeCatalogEntry`（D0-2 §4）。
 
@@ -173,8 +174,28 @@
 | `default` | any | ⬜ | |
 | `description` | string | ⬜ | |
 | `options` | array\<{name, value}> | ⬜ | 僅當 `type` ∈ {`options`, `multiOptions`} |
+| `schema_hint` | string \| null | ⬜ | 預設 `null`；受控詞彙，見下表。用於告知 semantic validator 與 Builder 該參數在 runtime 的意義形狀，補足結構型別（`string`/`number`/…）無法表達的語意。 |
 
 `type` 合法值：`string`, `number`, `boolean`, `options`, `multiOptions`, `collection`, `fixedCollection`, `json`, `color`, `dateTime`。
+
+`schema_hint` 合法值（受控詞彙，超出 allowlist 的值 ingest 需 raise）：
+
+| 值 | 意義 |
+|---|---|
+| `"url"` | HTTP(S) URL；C1-4 V-PARAM-* 規則會檢 scheme 與 host。 |
+| `"cron"` | Cron 表達式。 |
+| `"node_id"` | 指向另一個 node 的 id 或 name。 |
+| `"expression"` | n8n expression（`={{ ... }}`），validator 可做括號配對檢查。 |
+| `"credential_ref"` | 憑證引用名。 |
+| `"email"` | Email 地址。 |
+| `"datetime"` | ISO 8601 時間字串。 |
+| `"secret"` | 機密字串；禁止明文落盤/入 log。 |
+| `"resource_locator"` | n8n resourceLocator 物件（含 `mode`/`value`）。 |
+| `null` | 無語意標註（預設）。 |
+
+**範例**：`httpRequest` 節點的 `parameters.url` 應標註 `schema_hint="url"`；`scheduleTrigger` 的 cron 欄位應標 `"cron"`。
+
+**標註策略**：manual-first。Phase 2-D 手動為現有 ~30 個 definitions 中具 runtime 意義的參數打標；自動推論不在 MVP 範圍。新增 definition 時須 by-hand 標註。
 
 ### 4. 必要 30 個 detailed 節點（MVP 目標）
 
@@ -197,6 +218,15 @@
 - 若某 type 僅在 discovery（未有 detailed）：Builder 走降級（C1-2 §5）。
 - 若某 type 僅在 detailed（discovery 未含）：ingest script 應補一筆最小 discovery entry，避免 Planner 看不到。
 
+### 6. Ingest 責任
+
+`scripts/bootstrap_rag.py` 在生成 / 載入 `catalog_discovery.json` 時必須：
+
+- 掃描 `data/nodes/definitions/` 下的所有 `{slug}.json`，把檔案存在視為 detailed 可用信號。
+- 對每筆 discovery entry，若其 `type` 對應的 definition 檔存在，就把該 entry 的 `has_detail` 設為 `true`；否則保持 `false`。
+- 此欄位**不來自 xlsx 原始資料**，純由 ingest 階段依檔案系統狀態合成，因此每次 rebuild discovery 都需要重跑此步驟。
+- `schema_hint` 僅存在於 definition 檔；ingest 需以 allowlist 驗證每個 parameter 的 `schema_hint`，不在表列的值應 raise（見 Errors）。
+
 ## Errors
 
 | 情境 | 行為 |
@@ -205,6 +235,7 @@
 | `parameters` 非 list | ingest raise |
 | `type_version` 非 number | ingest raise |
 | `options` 在非 options type 下出現 | ingest warning，欄位保留 |
+| `schema_hint` 非 allowlist 值 | ingest raise |
 
 ## Acceptance Criteria
 
@@ -212,3 +243,13 @@
 - [ ] `definitions/` 含 ≥ 30 檔；每檔 schema pass（`NodeDefinition.model_validate(...)` 不 raise）。
 - [ ] HTTP Request、Slack、Schedule Trigger、If、Webhook、Google Sheets 六個 detailed 必須存在（三情境 smoke test 依賴）。
 - [ ] 所有 detailed 的 `type` 在 discovery 內都找得到同名 entry。
+- [ ] Discovery 中 `has_detail=true` 的筆數等於 `data/nodes/definitions/` 下的檔案數。
+- [ ] 至少 10 個 definition 檔對 runtime-meaningful 參數附上手動 `schema_hint` 標註。
+- [ ] JSON schema 驗證對 `schema_hint` allowlist 之外的值會拒收（ingest raise）。
+
+## 變更紀錄
+
+| 版本 | 日期 | 變更 |
+|---|---|---|
+| v1.0.0 | 2026-04-20 | 初版（Phase 0） |
+| v1.1.0 | 2026-04-21 | 新增 NodeCatalogEntry.has_detail、NodeParameter.schema_hint；支援 semantic validator 與 planner coverage-aware 選型 |
