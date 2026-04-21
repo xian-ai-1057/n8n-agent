@@ -8,6 +8,10 @@
 .chroma/
 data/chroma/
 
+# Eval artifacts (reports + LLM cache per D0-5 §7)
+tests/eval/report/
+tests/eval/llm_cache/
+
 # Python
 __pycache__/
 *.pyc
