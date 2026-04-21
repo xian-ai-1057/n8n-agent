@@ -1,0 +1,435 @@
+# Golden prompts for the n8n workflow builder eval harness (D0-5 v1.0).
+#
+# 欄位說明（Implements D0-5 §Contracts 1）：
+#   id                   — 穩定識別；regression gate 以此對應。
+#   message              — 使用者輸入（繁中自然語言；模擬真實場景）。
+#   expect.plan.min_steps        — plan 必須至少幾步。
+#   expect.plan.required_intents — 該 plan 必須涵蓋的 intent 類型集合（C1-1 §2.1）。
+#   expect.plan.required_types   — 計算 plan.hit_rate / retrieval.recall_at_8 的 ground truth。
+#   expect.validator_ok  — 期望 validator 通過（布林；若刻意要測 graceful degradation 可設 false）。
+#   expect.critic_pass   — 期望 critic pass（某些 detail_missing_type 可能容許 false）。
+#   expect.deploy        — 一律 `skip`；eval 不部署到 n8n。
+#   tags                 — 13 tag 分類，對應 D0-5 §1 的覆蓋要求。
+#
+# 覆蓋矩陣（每 tag ≥ 2）：
+#   schedule_trigger: 8  webhook_trigger: 8  manual_trigger: 8
+#   branching_if: 3      branching_switch: 4
+#   transform_set: 6     transform_code: 7
+#   http_request: 11     output_slack: 6    output_sheet: 6   output_email: 4
+#   multi_step_chain: 6  detail_missing_type: 2
+#
+# 節點類型來源：`data/nodes/catalog_discovery.json`（2026-04 快照）。
+# 對於 `detail_missing_type` tag，刻意命中未在 `data/nodes/definitions/` 的類型
+# （例如 jira、sendEmail），驗 C1-2 v1.1 §5 的 4-tier fallback 與 critic 是否
+# 能給出合理的 `unbound_credential` / `placeholder_value` concern。
+#
+# ⚠ 已知資料 bug：catalog_discovery 登錄 `n8n-nodes-base.manualWorkflowTrigger`，
+#   但 `data/nodes/definitions/manualTrigger.json` 內宣告 `type="n8n-nodes-base.manualTrigger"`，
+#   兩者不一致。本 yaml 依 catalog 為準（retrieval metrics 以 catalog 類型為 ground truth）。
+#   修正將由單獨的 PR 處理（見 C1-2 v1.1 §1 + R2-2 v1.1 §6 ingest 責任）。
+
+version: 1
+
+prompts:
+
+  # ─────────────────────────── schedule_trigger × http_request ──────────────
+
+  - id: github_zen_to_sheet
+    message: "每小時抓 https://api.github.com/zen 存到 Google Sheet"
+    expect:
+      plan:
+        min_steps: 3
+        required_intents: [trigger, action, output]
+        required_types:
+          - n8n-nodes-base.scheduleTrigger
+          - n8n-nodes-base.httpRequest
+          - n8n-nodes-base.googleSheets
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [schedule_trigger, http_request, output_sheet, multi_step_chain]
+
+  - id: hourly_api_to_slack
+    message: "每小時呼叫一次 https://status.example.com/api 若回 JSON 的 status 不是 ok 就發 Slack 訊息到 #alerts"
+    expect:
+      plan:
+        min_steps: 4
+        required_intents: [trigger, action, condition, output]
+        required_types:
+          - n8n-nodes-base.scheduleTrigger
+          - n8n-nodes-base.httpRequest
+          - n8n-nodes-base.if
+          - n8n-nodes-base.slack
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [schedule_trigger, http_request, branching_if, output_slack, multi_step_chain]
+
+  - id: daily_report_sheet_to_email
+    message: "每天早上 9 點讀 Google Sheet 的今日銷售明細，彙整後寄到 boss@example.com"
+    expect:
+      plan:
+        min_steps: 3
+        required_intents: [trigger, action, output]
+        required_types:
+          - n8n-nodes-base.scheduleTrigger
+          - n8n-nodes-base.googleSheets
+          - n8n-nodes-base.gmail
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [schedule_trigger, output_sheet, output_email]
+
+  - id: weekly_rss_digest
+    message: "每週一早上 8 點讀 https://hnrss.org/frontpage 的 RSS，整理成清單寄給 me@example.com"
+    expect:
+      plan:
+        min_steps: 3
+        required_types:
+          - n8n-nodes-base.scheduleTrigger
+          - n8n-nodes-base.httpRequest
+          - n8n-nodes-base.gmail
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [schedule_trigger, http_request, output_email]
+
+  # ─────────────────────────── webhook_trigger ──────────────────────────────
+
+  - id: webhook_to_slack
+    message: "收到 webhook POST 就把 body.message 發到 Slack #notifications"
+    expect:
+      plan:
+        min_steps: 2
+        required_intents: [trigger, output]
+        required_types:
+          - n8n-nodes-base.webhook
+          - n8n-nodes-base.slack
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [webhook_trigger, output_slack]
+
+  - id: webhook_urgent_branch
+    message: "webhook 收到資料後，若 body.type == 'urgent' 則立刻發 Slack，否則寫入 Google Sheet"
+    expect:
+      plan:
+        min_steps: 4
+        required_intents: [trigger, condition, output]
+        required_types:
+          - n8n-nodes-base.webhook
+          - n8n-nodes-base.if
+          - n8n-nodes-base.slack
+          - n8n-nodes-base.googleSheets
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [webhook_trigger, branching_if, output_slack, output_sheet, multi_step_chain]
+
+  - id: webhook_switch_event_type
+    message: "webhook 進來依 body.event 分三路：order → Slack、refund → Email、其他 → 寫 Sheet"
+    expect:
+      plan:
+        min_steps: 5
+        required_intents: [trigger, condition, output]
+        required_types:
+          - n8n-nodes-base.webhook
+          - n8n-nodes-base.switch
+          - n8n-nodes-base.slack
+          - n8n-nodes-base.gmail
+          - n8n-nodes-base.googleSheets
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [webhook_trigger, branching_switch, output_slack, output_email, output_sheet, multi_step_chain]
+
+  - id: webhook_set_and_respond
+    message: "收到 webhook 後設定 result='received'，然後用 respondToWebhook 回給呼叫端"
+    expect:
+      plan:
+        min_steps: 3
+        required_types:
+          - n8n-nodes-base.webhook
+          - n8n-nodes-base.set
+          - n8n-nodes-base.respondToWebhook
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [webhook_trigger, transform_set]
+
+  - id: webhook_code_enrich_then_notion
+    message: "webhook 帶進使用者 email，用 code 補上 MD5 hash 後存到 Notion 的 leads 資料庫"
+    expect:
+      plan:
+        min_steps: 3
+        required_types:
+          - n8n-nodes-base.webhook
+          - n8n-nodes-base.code
+          - n8n-nodes-base.notion
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [webhook_trigger, transform_code]
+
+  # ─────────────────────────── manual_trigger ───────────────────────────────
+
+  - id: manual_set_greeting
+    message: "手動觸發後設一個 greeting='hello world' 欄位"
+    expect:
+      plan:
+        min_steps: 2
+        required_intents: [trigger, transform]
+        required_types:
+          - n8n-nodes-base.manualWorkflowTrigger
+          - n8n-nodes-base.set
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [manual_trigger, transform_set]
+
+  - id: manual_http_fetch_and_code_parse
+    message: "手動觸發後呼叫 https://jsonplaceholder.typicode.com/todos/1，用 code 抽出 title 並組成新物件"
+    expect:
+      plan:
+        min_steps: 3
+        required_types:
+          - n8n-nodes-base.manualWorkflowTrigger
+          - n8n-nodes-base.httpRequest
+          - n8n-nodes-base.code
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [manual_trigger, http_request, transform_code]
+
+  - id: manual_multi_set_fields
+    message: "手動觸發後一次設定多個欄位：name='Alice'、role='admin'、createdAt=目前時間"
+    expect:
+      plan:
+        min_steps: 2
+        required_types:
+          - n8n-nodes-base.manualWorkflowTrigger
+          - n8n-nodes-base.set
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [manual_trigger, transform_set]
+
+  - id: manual_code_map_array
+    message: "手動觸發，用 code 節點把輸入的 items 陣列每筆加上 timestamp 欄位"
+    expect:
+      plan:
+        min_steps: 2
+        required_types:
+          - n8n-nodes-base.manualWorkflowTrigger
+          - n8n-nodes-base.code
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [manual_trigger, transform_code]
+
+  - id: manual_if_price_threshold
+    message: "手動觸發，call https://api.example.com/price 後若 price > 100 發 Slack，否則什麼都不做"
+    expect:
+      plan:
+        min_steps: 4
+        required_types:
+          - n8n-nodes-base.manualWorkflowTrigger
+          - n8n-nodes-base.httpRequest
+          - n8n-nodes-base.if
+          - n8n-nodes-base.slack
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [manual_trigger, branching_if, http_request, output_slack, multi_step_chain]
+
+  - id: manual_switch_by_category
+    message: "手動觸發後依 category 欄位 'a'/'b'/'c' 分別走三個不同的 set 分支（三支各補不同欄位）"
+    expect:
+      plan:
+        min_steps: 4
+        required_types:
+          - n8n-nodes-base.manualWorkflowTrigger
+          - n8n-nodes-base.switch
+          - n8n-nodes-base.set
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [manual_trigger, branching_switch, transform_set]
+
+  - id: manual_long_http_chain
+    message: "手動觸發後做以下流程：抓 API → 用 set 轉欄位名 → 用 code 清理 null → 寫入 Google Sheet"
+    expect:
+      plan:
+        min_steps: 5
+        required_types:
+          - n8n-nodes-base.manualWorkflowTrigger
+          - n8n-nodes-base.httpRequest
+          - n8n-nodes-base.set
+          - n8n-nodes-base.code
+          - n8n-nodes-base.googleSheets
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [manual_trigger, http_request, transform_set, transform_code, output_sheet, multi_step_chain]
+
+  # ─────────────────────────── branching: switch + merge ────────────────────
+
+  - id: switch_then_merge_streams
+    message: "webhook 進來依 body.lang 分成 en / zh 兩路，各自 code 處理後再 merge 輸出"
+    expect:
+      plan:
+        min_steps: 5
+        required_types:
+          - n8n-nodes-base.webhook
+          - n8n-nodes-base.switch
+          - n8n-nodes-base.code
+          - n8n-nodes-base.merge
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [webhook_trigger, branching_switch, transform_code, multi_step_chain]
+
+  # ─────────────────────────── http + multi-step ────────────────────────────
+
+  - id: http_fetch_and_sheet_append
+    message: "每 30 分鐘從 https://api.example.com/metrics 抓 JSON，把 data 陣列逐筆 append 到 Google Sheet"
+    expect:
+      plan:
+        min_steps: 3
+        required_types:
+          - n8n-nodes-base.scheduleTrigger
+          - n8n-nodes-base.httpRequest
+          - n8n-nodes-base.googleSheets
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [schedule_trigger, http_request, output_sheet, multi_step_chain]
+
+  - id: http_post_with_auth_transform
+    message: "手動觸發後 POST 一個 JSON body 到 https://api.example.com/ingest，帶 Authorization header，並用 set 節點先組好 payload"
+    expect:
+      plan:
+        min_steps: 3
+        required_types:
+          - n8n-nodes-base.manualWorkflowTrigger
+          - n8n-nodes-base.set
+          - n8n-nodes-base.httpRequest
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [manual_trigger, http_request, transform_set]
+
+  # ─────────────────────────── email triggers / outputs ─────────────────────
+
+  - id: email_imap_to_slack
+    message: "收到 inbox 新信時，把寄件者與主旨發到 Slack #mail-notifications"
+    expect:
+      plan:
+        min_steps: 2
+        required_types:
+          - n8n-nodes-base.emailImap
+          - n8n-nodes-base.slack
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [output_slack]
+
+  - id: form_trigger_to_email
+    message: "使用 form trigger 收集表單後，把結果以 HTML 寄到 admin@example.com"
+    expect:
+      plan:
+        min_steps: 2
+        required_types:
+          - n8n-nodes-base.formTrigger
+          - n8n-nodes-base.gmail
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [output_email]
+
+  # ─────────────────────────── branching_if ─────────────────────────────────
+
+  - id: if_stock_alert
+    message: "每 15 分鐘抓一次股價 API，若最新價跌破 100 就寄 email，否則寫入 sheet 紀錄"
+    expect:
+      plan:
+        min_steps: 5
+        required_types:
+          - n8n-nodes-base.scheduleTrigger
+          - n8n-nodes-base.httpRequest
+          - n8n-nodes-base.if
+          - n8n-nodes-base.gmail
+          - n8n-nodes-base.googleSheets
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [schedule_trigger, http_request, branching_if, output_email, output_sheet, multi_step_chain]
+
+  # ─────────────────────────── transform_code ───────────────────────────────
+
+  - id: transform_code_reshape_payload
+    message: "webhook 收到後用 code 把 body.items 陣列壓平成單層欄位，每筆一個 item"
+    expect:
+      plan:
+        min_steps: 2
+        required_types:
+          - n8n-nodes-base.webhook
+          - n8n-nodes-base.code
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [webhook_trigger, transform_code]
+
+  # ─────────────────────────── detail_missing_type ──────────────────────────
+  # 刻意使用 definitions/ 未收錄的 type，測試 C1-2 §5 4-tier fallback 與 critic 合理降級。
+  # Jira 與 sendEmail 都在 catalog_discovery 但不在 catalog_detailed。
+
+  - id: detail_missing_jira_create_issue
+    message: "收到 webhook 後在 Jira 的 SUPPORT 專案建立一張 issue，summary 取自 body.title"
+    expect:
+      plan:
+        min_steps: 2
+        required_types:
+          - n8n-nodes-base.webhook
+          - n8n-nodes-base.jira
+      validator_ok: true
+      # 沒有 detail → builder 走 templates 降級；若 templates 也沒相似範例會是 empty shell,
+      # critic 可能報 unbound_credential 或 empty_required_param。允許失敗作為觀測點。
+      critic_pass: false
+      deploy: skip
+    tags: [webhook_trigger, detail_missing_type]
+
+  - id: detail_missing_send_email_simple
+    message: "每天早上 8 點用 sendEmail 節點寄一封每日摘要到 team@example.com"
+    expect:
+      plan:
+        min_steps: 2
+        required_types:
+          - n8n-nodes-base.scheduleTrigger
+          - n8n-nodes-base.sendEmail
+      validator_ok: true
+      critic_pass: false
+      deploy: skip
+    tags: [schedule_trigger, output_email, detail_missing_type]
+
+  # ─────────────────────────── multi-step long chain ────────────────────────
+
+  - id: full_pipeline_schedule_to_sheet_and_slack
+    message: |
+      每小時執行：抓 https://api.example.com/orders 的 JSON，
+      用 set 正規化欄位名，如果今天訂單 > 100 筆就發 Slack 通知 #sales，
+      同時把全部資料 append 到 Google Sheet
+    expect:
+      plan:
+        min_steps: 6
+        required_types:
+          - n8n-nodes-base.scheduleTrigger
+          - n8n-nodes-base.httpRequest
+          - n8n-nodes-base.set
+          - n8n-nodes-base.if
+          - n8n-nodes-base.slack
+          - n8n-nodes-base.googleSheets
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [schedule_trigger, http_request, transform_set, branching_if, output_slack, output_sheet, multi_step_chain]

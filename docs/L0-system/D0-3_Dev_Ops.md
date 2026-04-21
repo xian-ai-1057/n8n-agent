@@ -1,6 +1,6 @@
 # D0-3：Dev / Ops
 
-> **版本**: v1.0.0 ｜ **狀態**: Draft ｜ **前置**: D0-1, D0-2
+> **版本**: v1.1.0 ｜ **狀態**: Draft ｜ **前置**: D0-1, D0-2
 
 ## Purpose
 
@@ -74,6 +74,38 @@ n8n_agent/
 | `BACKEND_URL` | `http://localhost:8000` | 供 Streamlit 呼叫 |
 
 若未直接以 Docker 跑 backend（MVP 推薦裸跑 Python 以便 debug），`OPENAI_BASE_URL` 可設為 `http://localhost:8000/v1`（對應本機 vllm）。
+
+#### 2.1 模型配置（分階段）
+
+為讓 Planner / Builder / Fix / Critic 等不同推論階段能獨立掛載不同模型與溫度（常見場景：fix 階段用較強的 model、critic 用小而精準的 model），提供下列進階環境變數。**全部為選填**；未設值則沿用頂層 `LLM_MODEL`，行為與 v1.0 相同。
+
+| 變數 | 預設 | 說明 |
+| --- | --- | --- |
+| `PLANNER_MODEL` | `$LLM_MODEL` | Planner 階段用的 chat model；不設則沿用 LLM_MODEL |
+| `BUILDER_MODEL` | `$LLM_MODEL` | Builder（首跑）階段用的 chat model |
+| `FIX_MODEL` | `$LLM_MODEL` | Fix retry 階段；建議用比 builder 強的 model（fix 是更難的任務） |
+| `CRITIC_MODEL` | `$LLM_MODEL` | C1-7 critic LLM；建議用小但精準的 model |
+| `RERANKER_MODEL` | `` (空＝停用 reranker) | Cross-encoder 或 LLM-as-reranker model id；空則 RAG 走純 cosine |
+| `PLANNER_TEMPERATURE` | `0.2` | |
+| `BUILDER_TEMPERATURE` | `0.2` | |
+| `FIX_TEMPERATURE` | `0.0` | Fix 需要 deterministic，預設降到 0 |
+| `CRITIC_TEMPERATURE` | `0.0` | |
+| `EMBED_PROMPT_PROFILE` | `auto` | 嵌入 prompt profile：`auto` / `embeddinggemma` / `bge` / `openai` / `none`。`auto` 則依 `EMBED_MODEL` id 推斷 |
+
+> **向下相容**：若只設 `LLM_MODEL`，所有 stage 沿用舊行為；無破壞性變更。既有 `.env` 無需修改即可升級至 v1.1。
+
+`.env` 範例（分階段模型；全部註解掉代表沿用 `LLM_MODEL`）：
+
+```
+# 進階：分階段模型（預設全部沿用 LLM_MODEL）
+# PLANNER_MODEL=Qwen/Qwen2.5-7B-Instruct
+# BUILDER_MODEL=Qwen/Qwen2.5-14B-Instruct
+# FIX_MODEL=Qwen/Qwen2.5-32B-Instruct
+# CRITIC_MODEL=Qwen/Qwen2.5-7B-Instruct
+# RERANKER_MODEL=BAAI/bge-reranker-v2-m3
+# FIX_TEMPERATURE=0.0
+# EMBED_PROMPT_PROFILE=auto
+```
 
 ### 3. 本機 bootstrap
 
@@ -155,6 +187,8 @@ Backend 與 frontend MVP 不入 compose（便於熱重載、IDE debug）。
 
 MVP 不做負載測試、不做 LLM 輸出 regression 評估（記錄到 D0-1 §非功能目標）。
 
+eval harness（D0-5）可透過上述分階段變數（`PLANNER_MODEL` / `BUILDER_MODEL` / `FIX_MODEL` / `CRITIC_MODEL` 等）做 A/B 模型比較。
+
 ### 7. Logging
 
 - backend 用 `structlog` 或 `logging` + JSON formatter 皆可；key 欄位：`event`, `stage`, `retry_count`, `latency_ms`。
@@ -175,3 +209,10 @@ MVP 不做負載測試、不做 LLM 輸出 regression 評估（記錄到 D0-1 §
 - [ ] `uvicorn app.main:app` 啟動後 `GET /health` 三項皆 ok。
 - [ ] `streamlit run frontend/app.py` 可送訊息並看見後端回覆。
 - [ ] `pytest tests/unit -q` 全綠。
+
+## 變更紀錄
+
+| 版本 | 日期 | 變更 |
+|---|---|---|
+| v1.0.0 | 2026-04-20 | 初版 |
+| v1.1.0 | 2026-04-21 | 新增分階段模型/溫度/embedding prompt profile 環境變數 |
