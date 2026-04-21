@@ -1,6 +1,6 @@
 """Unit tests for the RAG Retriever (Implements C1-2 §3).
 
-We stub both ChromaStore and OllamaEmbedder so nothing touches disk or network.
+We stub both ChromaStore and OpenAIEmbedder so nothing touches disk or network.
 """
 
 from __future__ import annotations

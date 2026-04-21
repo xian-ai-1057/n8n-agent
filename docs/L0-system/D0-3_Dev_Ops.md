@@ -9,7 +9,7 @@
 ## Inputs
 
 - D0-1 技術決策
-- 使用者本機狀態：macOS、Ollama 已 pull `qwen3.5:9b` 與 `embeddinggemma:latest`、Docker Desktop 已安裝。
+- 使用者本機狀態：macOS / Linux、已有 OpenAI 相容推論伺服器（vllm / OpenAI / LiteLLM 等）可服務指定的 chat + embedding 模型、Docker Desktop 已安裝。
 
 ## Outputs
 
@@ -48,8 +48,7 @@ n8n_agent/
 │       │   └── prompts/             # 來自 R2-3
 │       ├── rag/                     # 對應 C1-2
 │       ├── n8n/                     # 對應 C1-3
-│       └── llm/
-│           └── ollama.py
+│       └── agent/llm.py             # OpenAI 相容 chat 包裝
 ├── frontend/
 │   ├── app.py                       # 對應 C1-6
 │   └── requirements.txt
@@ -66,14 +65,15 @@ n8n_agent/
 |---|---|---|
 | `N8N_URL` | `http://localhost:5678` | backend 從 host 連 n8n 時使用 |
 | `N8N_API_KEY` | _(空)_ | n8n UI Settings → n8n API 產生後填入；header `X-N8N-API-KEY` |
-| `OLLAMA_BASE_URL` | `http://host.docker.internal:11434` | 從 backend 容器連 host Ollama（macOS / Windows） |
-| `LLM_MODEL` | `qwen3.5:9b` | 生成 LLM |
-| `EMBED_MODEL` | `embeddinggemma:latest` | Embedding |
+| `OPENAI_BASE_URL` | `http://localhost:8000/v1` | OpenAI 相容推論端點（vllm / OpenAI / LiteLLM）；容器內用 `http://host.docker.internal:8000/v1` |
+| `OPENAI_API_KEY` | `EMPTY` | Bearer token；vllm 不驗證，OpenAI 需填真實金鑰 |
+| `LLM_MODEL` | `Qwen/Qwen2.5-7B-Instruct` | 生成 LLM；需對應伺服器實際 served model id |
+| `EMBED_MODEL` | `BAAI/bge-m3` | Embedding；同樣需對應伺服器 served model id |
 | `CHROMA_PATH` | `./data/chroma` | ChromaDB persist dir |
 | `LOG_LEVEL` | `INFO` | backend log level |
 | `BACKEND_URL` | `http://localhost:8000` | 供 Streamlit 呼叫 |
 
-若未直接以 Docker 跑 backend（MVP 推薦裸跑 Python 以便 debug），`OLLAMA_BASE_URL` 可設為 `http://localhost:11434`。
+若未直接以 Docker 跑 backend（MVP 推薦裸跑 Python 以便 debug），`OPENAI_BASE_URL` 可設為 `http://localhost:8000/v1`（對應本機 vllm）。
 
 ### 3. 本機 bootstrap
 
@@ -83,8 +83,8 @@ n8n_agent/
 # 1) Docker
 docker --version
 
-# 2) Ollama models
-ollama list | grep -E 'qwen3\.5:9b|embeddinggemma'
+# 2) 推論端點健檢（確認 chat + embedding 模型都已服務）
+curl -s "$OPENAI_BASE_URL/models" -H "Authorization: Bearer $OPENAI_API_KEY" | jq '.data[].id'
 
 # 3) Python 3.11
 python3.11 --version
@@ -124,7 +124,7 @@ python scripts/bootstrap_rag.py             # ingest discovery + detailed 到 Ch
 | CLI 單次跑 Agent | `cd backend && python -m app.agent.graph "<prompt>"` | Phase 2-B 驗收用 |
 | 重建 RAG | `python scripts/bootstrap_rag.py --force` | 節點 JSON 更動後 |
 | Unit 測試 | `cd backend && pytest tests/unit -q` | |
-| E2E 測試 | `cd backend && pytest tests/e2e -q` | 需 n8n + Ollama 可達 |
+| E2E 測試 | `cd backend && pytest tests/e2e -q` | 需 n8n + OpenAI 相容端點可達 |
 
 ### 5. docker-compose 最小內容（Phase 1-A 參考）
 
@@ -151,7 +151,7 @@ Backend 與 frontend MVP 不入 compose（便於熱重載、IDE debug）。
 |---|---|---|---|
 | Unit | Pydantic 模型、validator 規則、n8n client 欄位過濾、prompt 渲染 | pytest | `tests/unit/` |
 | Component | Retriever 回傳排序、assembler 輸出結構 | pytest + 固定 fixture | `tests/unit/` |
-| E2E Smoke | Plan §Verification 三情境各跑 3 次 | pytest + 真實 Ollama + n8n | `tests/e2e/` |
+| E2E Smoke | Plan §Verification 三情境各跑 3 次 | pytest + 真實 OpenAI 相容端點 + n8n | `tests/e2e/` |
 
 MVP 不做負載測試、不做 LLM 輸出 regression 評估（記錄到 D0-1 §非功能目標）。
 
@@ -162,7 +162,7 @@ MVP 不做負載測試、不做 LLM 輸出 regression 評估（記錄到 D0-1 §
 
 ## Errors
 
-- Ollama 不可達 → backend `/health` 回 `{"ollama": "down"}`；`/chat` 直接 503。
+- OpenAI 相容端點不可達 → backend `/health` 回 `{"openai": false}`；`/chat` 直接 503。
 - n8n 不可達 → `/health` 回 `{"n8n": "down"}`；deployer 階段拋 `DeployError`（見 C1-3）。
 - Chroma 目錄權限錯 → ingest script 直接 raise，不 swallow。
 - `.env` 缺 `N8N_API_KEY` → backend 啟動時 fail-fast（`config.py` 用 `pydantic-settings` 必填驗證）。

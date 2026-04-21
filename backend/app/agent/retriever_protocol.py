@@ -137,13 +137,13 @@ class _FilesystemStubRetriever:
 def get_retriever() -> RetrieverProtocol:
     """Return a retriever — prefer Phase 2-A's real class, fall back to stub.
 
-    Phase 2-A's `Retriever(store, embedder)` requires the two Chroma + Ollama
-    deps. We only wire it up if both are importable AND the Chroma collections
-    already exist on disk — otherwise we degrade to the stub.
+    Phase 2-A's `Retriever(store, embedder)` requires the Chroma + OpenAI-compat
+    embedder deps. We only wire it up if both are importable AND the Chroma
+    collections already exist on disk — otherwise we degrade to the stub.
     """
     try:
         from ..config import get_settings
-        from ..rag.embedder import OllamaEmbedder
+        from ..rag.embedder import OpenAIEmbedder
         from ..rag.retriever import Retriever
         from ..rag.store import ChromaStore
     except ImportError as exc:
@@ -163,8 +163,10 @@ def get_retriever() -> RetrieverProtocol:
         except Exception:  # noqa: BLE001
             logger.info("Chroma discovery collection missing; using stub")
             return _FilesystemStubRetriever()
-        embedder = OllamaEmbedder(
-            base_url=settings.ollama_base_url, model=settings.embed_model
+        embedder = OpenAIEmbedder(
+            base_url=settings.openai_base_url,
+            api_key=settings.openai_api_key,
+            model=settings.embed_model,
         )
         return Retriever(store, embedder)  # type: ignore[no-any-return]
     except Exception as exc:  # noqa: BLE001

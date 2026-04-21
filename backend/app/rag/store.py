@@ -5,7 +5,7 @@ Two collections, both cosine-distance:
 - `catalog_detailed`
 
 We pass pre-computed embeddings on upsert/query (no server-side embedding function),
-so Chroma never needs to call Ollama itself.
+so Chroma never needs to call the embeddings endpoint itself.
 """
 
 from __future__ import annotations

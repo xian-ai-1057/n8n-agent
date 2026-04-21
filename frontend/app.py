@@ -57,7 +57,7 @@ with st.sidebar:
                 st.session_state.last_error = None
                 c1, c2, c3 = st.columns(3)
                 c1.metric(
-                    "Ollama", "OK" if data.get("ollama") else "FAIL",
+                    "OpenAI", "OK" if data.get("openai") else "FAIL",
                     delta=None, delta_color="off",
                 )
                 c2.metric(

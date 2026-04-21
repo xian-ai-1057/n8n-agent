@@ -20,7 +20,7 @@ from pydantic import ValidationError
 
 from app.config import get_settings
 from app.models.catalog import NodeDefinition
-from app.rag.embedder import OllamaEmbedder, OllamaUnavailable
+from app.rag.embedder import EmbedderUnavailable, OpenAIEmbedder
 from app.rag.store import COLLECTION_DETAILED, ChromaStore
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -63,7 +63,7 @@ def ingest_detailed(
     *,
     reset: bool = False,
     store: ChromaStore | None = None,
-    embedder: OllamaEmbedder | None = None,
+    embedder: OpenAIEmbedder | None = None,
 ) -> int:
     """Upsert every definitions/*.json. Returns ingested count."""
     definitions_dir = Path(definitions_dir)
@@ -75,7 +75,7 @@ def ingest_detailed(
 
     settings = get_settings()
     store = store or ChromaStore(settings.chroma_path)
-    embedder = embedder or OllamaEmbedder()
+    embedder = embedder or OpenAIEmbedder()
 
     if reset:
         store.reset(COLLECTION_DETAILED)
@@ -134,10 +134,10 @@ def _main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        embedder = OllamaEmbedder()
+        embedder = OpenAIEmbedder()
         embedder.ping()
         ingest_detailed(args.dir, reset=args.reset, embedder=embedder)
-    except OllamaUnavailable as exc:
+    except EmbedderUnavailable as exc:
         print(f"[ingest_detailed] ERROR: {exc}", file=sys.stderr)
         return 2
     except Exception as exc:

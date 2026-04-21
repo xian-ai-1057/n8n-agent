@@ -6,9 +6,9 @@ individual handlers via FastAPI's TestClient with monkeypatches.
 Rules followed from C1-5:
 - ``POST /chat`` is sync-over-HTTP. We wrap the (blocking) LangGraph invocation
   in ``asyncio.to_thread`` and enforce a 180 s budget with ``asyncio.wait_for``.
-- ``GET /health`` probes Ollama / n8n / Chroma, each under a 3 s budget. Top
-  level ``ok`` is the AND of the three. Response is always HTTP 200 so external
-  probes can introspect the details themselves.
+- ``GET /health`` probes the OpenAI-compat endpoint / n8n / Chroma, each under
+  a 3 s budget. Top level ``ok`` is the AND of the three. Response is always
+  HTTP 200 so external probes can introspect the details themselves.
 - We deploy whenever ``N8N_API_KEY`` is set; otherwise ``workflow_url`` stays
   ``None`` and only ``workflow_json`` is returned.
 """
@@ -60,20 +60,26 @@ async def root() -> dict[str, str]:
 # ----------------------------------------------------------------------
 
 
-async def _check_ollama(settings) -> dict[str, Any]:
+async def _check_openai(settings) -> dict[str, Any]:
+    """Probe the OpenAI-compatible endpoint's `GET /models`.
+
+    Works for vllm, OpenAI, LiteLLM, and any other server that implements the
+    OpenAI models endpoint. Confirms both chat + embedding models are served.
+    """
     t0 = time.monotonic()
-    url = f"{settings.ollama_base_url.rstrip('/')}/api/tags"
+    url = f"{settings.openai_base_url.rstrip('/')}/models"
+    headers = {"Authorization": f"Bearer {settings.openai_api_key}"}
     try:
         async with httpx.AsyncClient(timeout=HEALTH_CHECK_TIMEOUT) as c:
-            r = await c.get(url)
+            r = await c.get(url, headers=headers)
         latency = int((time.monotonic() - t0) * 1000)
         if r.status_code != 200:
             return {"ok": False, "latency_ms": latency, "error": f"status {r.status_code}"}
-        tags = r.json().get("models") or []
-        have = {m.get("name", "") for m in tags}
+        models = r.json().get("data") or []
+        have = {m.get("id", "") for m in models}
         missing = [
             m for m in (settings.llm_model, settings.embed_model)
-            if not any(name == m or name.startswith(m + ":") or name.startswith(m) for name in have)
+            if m not in have
         ]
         if missing:
             return {
@@ -145,21 +151,21 @@ async def _check_chroma(settings) -> dict[str, Any]:
 @router.get("/health")
 async def health() -> dict[str, Any]:
     settings = get_settings()
-    ollama, n8n_, chroma = await asyncio.gather(
-        _check_ollama(settings),
+    openai_, n8n_, chroma = await asyncio.gather(
+        _check_openai(settings),
         _check_n8n(settings),
         _check_chroma(settings),
     )
-    all_ok = bool(ollama.get("ok") and n8n_.get("ok") and chroma.get("ok"))
+    all_ok = bool(openai_.get("ok") and n8n_.get("ok") and chroma.get("ok"))
     # Return flat shape requested in deliverables as well as the `checks`
     # nested shape from C1-5 §2 — tests consume either form.
     return {
         "ok": all_ok,
-        "ollama": bool(ollama.get("ok")),
+        "openai": bool(openai_.get("ok")),
         "n8n": bool(n8n_.get("ok")),
         "chroma": bool(chroma.get("ok")),
         "checks": {
-            "ollama": ollama,
+            "openai": openai_,
             "n8n": n8n_,
             "chroma": chroma,
         },

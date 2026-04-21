@@ -11,7 +11,7 @@
 | 使用者 | Streamlit（`:8501`） | 在 `st.session_state.messages` 維持單一 session |
 | Backend | FastAPI（`:8000`） | stateless；每次請求重新組 `AgentState` |
 | Chroma | `.chroma/`（本機檔案） | 持久化；兩個 collection |
-| Ollama | host `:11434` | 提供生成與 embedding |
+| OpenAI 相容端點 | `$OPENAI_BASE_URL`（預設 `http://localhost:8000/v1`） | 提供生成與 embedding（vllm / OpenAI / LiteLLM） |
 | n8n | Docker（`:5678`） | 以自身 SQLite 保存 workflow |
 
 ## 1. 索引資料（離線，一次性）
@@ -36,7 +36,7 @@ data/nodes/definitions/*.json       ← ~30 個節點的完整參數
 └──────────────────────────────────────────────┘
 ```
 
-Embedding 由 `OllamaEmbedder` 透過 `embeddinggemma` 模型產生，寫入時一併保存。
+Embedding 由 `OpenAIEmbedder` 透過 `$EMBED_MODEL`（例：`BAAI/bge-m3`）呼叫 `$OPENAI_BASE_URL/embeddings` 產生，寫入時一併保存。
 
 ## 2. 線上請求流（Online）
 
@@ -56,7 +56,7 @@ ChatRequest.message ──▶ Retriever.search_discovery(k=8)
                            ├─ embedder: text → vector (768d)
                            └─ Chroma: cosine → 8 × NodeCatalogEntry
                            
-候選節點 + user_message ──▶ Planner Prompt ──▶ Ollama(qwen3.5:9b)
+候選節點 + user_message ──▶ Planner Prompt ──▶ ChatOpenAI($LLM_MODEL)
                                                  ▼
                                      PlannerOutput { steps: StepPlan[] }
                                      StepPlan { intent, description,
@@ -72,7 +72,7 @@ ChatRequest.message ──▶ Retriever.search_discovery(k=8)
                                             ▼
                                 NodeDefinition { parameters, credentials… }
 
-plan + definitions + user_message ──▶ Builder Prompt ──▶ Ollama
+plan + definitions + user_message ──▶ Builder Prompt ──▶ ChatOpenAI($LLM_MODEL)
                                                            ▼
                                           BuilderOutput {
                                             nodes: BuiltNode[],
@@ -177,18 +177,18 @@ ChatResponse {
 | `AgentState` 中間值 | 後端 Python 物件 | 單次請求；結束即釋放 |
 | 節點目錄 | `data/nodes/*.json` + `.chroma/` | 版本控管；手動重建 |
 | 產生的 workflow | n8n SQLite | 永久，直到使用者在 n8n UI 刪除 |
-| Ollama 模型 | 主機 Ollama 資料夾 | 由 `ollama` 管理 |
+| LLM / embedding 權重 | 推論伺服器（vllm / OpenAI 雲端） | 由伺服器端管理 |
 
 ## 5. 外部呼叫與機密
 
 | 呼叫 | 方向 | 認證 | 備註 |
 | --- | --- | --- | --- |
 | Frontend → Backend | HTTP JSON | 無（本機） | 200s timeout |
-| Backend → Ollama | HTTP | 無 | `/api/chat`、`/api/embed` |
+| Backend → OpenAI 相容端點 | HTTP | `Authorization: Bearer $OPENAI_API_KEY` | `/chat/completions`、`/embeddings` |
 | Backend → Chroma | 本地 client | 無 | `PersistentClient(path=.chroma)` |
 | Backend → n8n | HTTP JSON | `X-N8N-API-KEY`（從 `.env`） | 無 key 則走 dry-run |
 
-所有機密僅來自 `.env`；專案不對外傳送任何資料（除呼叫本機 Ollama／n8n）。
+所有機密僅來自 `.env`；專案不對外傳送任何資料（除呼叫設定的推論端點與 n8n）。若 `OPENAI_BASE_URL` 指向雲端（例如 OpenAI），則 prompt 內容會離開本機，請依需求選擇本地 vllm 部署。
 
 ## 6. 失敗時的資料狀態
 

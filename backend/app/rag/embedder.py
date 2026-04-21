@@ -1,64 +1,78 @@
-"""OllamaEmbedder — wraps `langchain_ollama.OllamaEmbeddings` (Implements C1-2).
+"""OpenAIEmbedder — wraps `langchain_openai.OpenAIEmbeddings` (Implements C1-2).
 
-Exposes `embed` / `embed_batch` and raises `OllamaUnavailable` on connect failure,
-so callers can distinguish "Ollama is down" from other errors.
+Exposes `embed` / `embed_batch` and raises `EmbedderUnavailable` on connect
+failure, so callers can distinguish "the embeddings endpoint is down" from
+other errors. Targets any OpenAI-compatible endpoint — OpenAI itself, vllm,
+LiteLLM, etc.
 """
 
 from __future__ import annotations
 
 import httpx
-from langchain_ollama import OllamaEmbeddings
+from langchain_openai import OpenAIEmbeddings
 
 from app.config import get_settings
 
 
-class OllamaUnavailable(RuntimeError):
-    """Raised when the Ollama HTTP endpoint is unreachable."""
+class EmbedderUnavailable(RuntimeError):
+    """Raised when the embeddings HTTP endpoint is unreachable."""
 
 
-class OllamaEmbedder:
-    """Embeddinggemma (via Ollama) wrapper."""
+class OpenAIEmbedder:
+    """Thin wrapper over `OpenAIEmbeddings` bound to an OpenAI-compatible server."""
 
     def __init__(
         self,
         model: str | None = None,
         base_url: str | None = None,
+        api_key: str | None = None,
         connect_timeout_s: float = 8.0,
     ) -> None:
         settings = get_settings()
         self.model = model or settings.embed_model
-        self.base_url = base_url or settings.ollama_base_url
+        self.base_url = base_url or settings.openai_base_url
+        self.api_key = api_key or settings.openai_api_key
         self._connect_timeout_s = connect_timeout_s
-        # `langchain_ollama.OllamaEmbeddings` owns its own http client;
-        # we don't get to configure the connect timeout directly, but it
-        # honours Ollama's default (60s) which is acceptable for batch work.
-        self._client = OllamaEmbeddings(
+        # `OpenAIEmbeddings` owns its own HTTPX client. `check_embedding_ctx_length`
+        # must be False for vllm: the client otherwise tries to tokenise with
+        # tiktoken using an OpenAI model name, which doesn't exist for e.g.
+        # BGE/E5.
+        self._client = OpenAIEmbeddings(
             model=self.model,
             base_url=self.base_url,
+            api_key=self.api_key,
+            check_embedding_ctx_length=False,
         )
 
     # ----- availability probe ----------------------------------------------
 
     def ping(self) -> None:
-        """Quick reachability probe. Raises OllamaUnavailable on failure."""
+        """Quick reachability probe. Raises EmbedderUnavailable on failure."""
+        url = f"{self.base_url.rstrip('/')}/models"
+        headers = {"Authorization": f"Bearer {self.api_key}"}
         try:
             with httpx.Client(timeout=self._connect_timeout_s) as http:
-                resp = http.get(f"{self.base_url.rstrip('/')}/api/tags")
+                resp = http.get(url, headers=headers)
                 resp.raise_for_status()
         except (httpx.HTTPError, OSError) as exc:
-            raise OllamaUnavailable(
-                f"Ollama not reachable at {self.base_url}: {exc}"
+            raise EmbedderUnavailable(
+                f"Embeddings endpoint not reachable at {self.base_url}: {exc}"
             ) from exc
 
     # ----- embedding API ----------------------------------------------------
 
     def embed(self, text: str) -> list[float]:
-        """Embed a *query* text. Wraps in the embeddinggemma search prompt."""
+        """Embed a *query* text. Wraps in the embeddinggemma search prompt.
+
+        Leaves the prompt wrapper in place because it's cheap no-op noise for
+        models that don't need it (BGE/E5/OpenAI) and still wins when users
+        point at an embeddinggemma-compatible server.
+        """
         try:
             return self._client.embed_query(_as_query(text))
         except (httpx.HTTPError, OSError) as exc:  # pragma: no cover — network
-            raise OllamaUnavailable(
-                f"Ollama embed failed at {self.base_url}: {exc}"
+            raise EmbedderUnavailable(
+                f"Embed call failed at {self.base_url}: {exc}"
             ) from exc
 
     def embed_batch(self, texts: list[str]) -> list[list[float]]:
@@ -73,8 +87,8 @@ class OllamaEmbedder:
         try:
             return self._client.embed_documents(texts)
         except (httpx.HTTPError, OSError) as exc:  # pragma: no cover — network
-            raise OllamaUnavailable(
-                f"Ollama embed_batch failed at {self.base_url}: {exc}"
+            raise EmbedderUnavailable(
+                f"Embed batch call failed at {self.base_url}: {exc}"
             ) from exc
 
 

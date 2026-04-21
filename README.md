@@ -11,16 +11,18 @@ spec set under `docs/` for the full design.
 
 - Docker Desktop (tested with Docker 28.x)
 - Python 3.11+ (backend runs on host during MVP for fast iteration)
-- Ollama running on the host with the following models already pulled:
-  - `qwen3.5:9b`       (generation LLM)
-  - `embeddinggemma:latest` (embeddings for RAG)
+- An OpenAI-compatible inference endpoint that serves both a chat model and
+  an embedding model. Any of these work:
+  - vllm (`vllm serve --served-model-name ...`) — recommended for local
+  - OpenAI (`https://api.openai.com/v1`)
+  - LiteLLM / OpenRouter / any other OpenAI-compatible gateway
 
 Verify with:
 
 ```bash
 docker --version
 python3.11 --version
-ollama list
+curl -s "$OPENAI_BASE_URL/models" -H "Authorization: Bearer $OPENAI_API_KEY" | jq
 ```
 
 ## Quickstart
@@ -41,13 +43,19 @@ ollama list
    **Settings -> n8n API -> Create an API key**, copy the value, and paste it
    into `.env` as `N8N_API_KEY=...`.
 
-4. Confirm the Ollama models are available on the host:
+4. Point the backend at your inference server. Edit `.env`:
 
    ```bash
-   ollama list | grep -E 'qwen3\.5:9b|embeddinggemma'
-   # If either is missing:
-   #   ollama pull qwen3.5:9b
-   #   ollama pull embeddinggemma:latest
+   OPENAI_BASE_URL=http://localhost:8000/v1   # e.g. local vllm
+   OPENAI_API_KEY=EMPTY                       # any non-empty string for vllm
+   LLM_MODEL=Qwen/Qwen2.5-7B-Instruct         # must match server's served model
+   EMBED_MODEL=BAAI/bge-m3                    # must match server's served model
+   ```
+
+   Confirm the server is serving both models:
+
+   ```bash
+   curl -s http://localhost:8000/v1/models | jq '.data[].id'
    ```
 
 5. Run the backend + frontend.
@@ -56,7 +64,7 @@ ollama list
    it you'll hit `ModuleNotFoundError: app`:
 
    ```bash
-   OLLAMA_BASE_URL=http://localhost:11434 \
+   OPENAI_BASE_URL=http://localhost:8000/v1 OPENAI_API_KEY=EMPTY \
    /opt/miniconda3/envs/agent/bin/python -m uvicorn app.main:app \
        --app-dir backend --host 0.0.0.0 --port 8000 --reload
    ```
@@ -106,9 +114,9 @@ n8n_agent/
 │       ├── main.py                 # FastAPI
 │       ├── models/                 # Pydantic SSOT
 │       ├── agent/                  # LangGraph: planner/builder/assembler/validator/deployer
-│       ├── rag/                    # Chroma ingest + retriever
-│       ├── n8n/                    # n8n REST client
-│       └── llm/                    # Ollama wrapper
+│       │   └── llm.py              # OpenAI-compatible chat wrapper
+│       ├── rag/                    # Chroma ingest + retriever (OpenAI-compat embeddings)
+│       └── n8n/                    # n8n REST client
 ├── frontend/                       # Streamlit UI (Phase 3)
 └── tests/                          # unit + e2e (Phase 1-C onward)
 ```

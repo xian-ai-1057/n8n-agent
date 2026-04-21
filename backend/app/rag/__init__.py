@@ -6,19 +6,20 @@ Dual-index retrieval over ChromaDB:
 
 Public surface:
 - `ChromaStore` — thin wrapper over a single `PersistentClient`.
-- `OllamaEmbedder` — wraps `langchain_ollama.OllamaEmbeddings`.
+- `OpenAIEmbedder` — wraps `langchain_openai.OpenAIEmbeddings`.
 - `Retriever` — the only caller-facing entry point; returns typed Pydantic objects.
 """
 
 from __future__ import annotations
 
-from .embedder import OllamaEmbedder
+from .embedder import EmbedderUnavailable, OpenAIEmbedder
 from .retriever import Retriever
-from .store import ChromaStore, COLLECTION_DETAILED, COLLECTION_DISCOVERY
+from .store import COLLECTION_DETAILED, COLLECTION_DISCOVERY, ChromaStore
 
 __all__ = [
     "ChromaStore",
-    "OllamaEmbedder",
+    "EmbedderUnavailable",
+    "OpenAIEmbedder",
     "Retriever",
     "COLLECTION_DISCOVERY",
     "COLLECTION_DETAILED",

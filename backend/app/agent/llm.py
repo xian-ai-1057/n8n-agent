@@ -1,6 +1,8 @@
-"""ChatOllama factory (Implements C1-1).
+"""ChatOpenAI factory (Implements C1-1).
 
 Centralises LLM construction so callers can patch a single place in tests.
+Targets any OpenAI-compatible endpoint — OpenAI itself, vllm's
+`--served-model-name` server, LiteLLM, etc.
 """
 
 from __future__ import annotations
@@ -8,7 +10,7 @@ from __future__ import annotations
 import threading
 from typing import Any
 
-from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
 
 from ..config import get_settings
@@ -21,11 +23,12 @@ class LLMTimeoutError(TimeoutError):
     """Raised when a structured LLM call exceeds its timeout budget."""
 
 
-def _base_chat(*, temperature: float = DEFAULT_TEMPERATURE) -> ChatOllama:
+def _base_chat(*, temperature: float = DEFAULT_TEMPERATURE) -> ChatOpenAI:
     settings = get_settings()
-    return ChatOllama(
+    return ChatOpenAI(
         model=settings.llm_model,
-        base_url=settings.ollama_base_url,
+        base_url=settings.openai_base_url,
+        api_key=settings.openai_api_key,
         temperature=temperature,
     )
 
@@ -35,19 +38,20 @@ def get_llm(
     *,
     temperature: float = DEFAULT_TEMPERATURE,
 ) -> Any:
-    """Return a ChatOllama bound to structured output for `schema`.
+    """Return a ChatOpenAI bound to structured output for `schema`.
 
-    Uses `method="json_schema"` — measured 17s on qwen3:8b with the real
-    BuilderOutput schema. `function_calling` returned None on local thinking
-    models (qwen3/qwen3.5 both have the `thinking` capability).
-    Do NOT switch to `format="json"` (weaker schema guarantee).
+    Uses `method="json_schema"` — OpenAI's native Structured Outputs, which
+    vllm also implements via `response_format={"type": "json_schema", ...}`.
+    Do NOT switch to `method="function_calling"` — not every vllm-hosted
+    model supports tool calling, but all of them accept JSON-schema guided
+    decoding.
     """
     chat = _base_chat(temperature=temperature)
     return chat.with_structured_output(schema, method="json_schema")
 
 
-def get_unstructured_llm(*, temperature: float = DEFAULT_TEMPERATURE) -> ChatOllama:
-    """Plain ChatOllama for fallbacks / free-form completions."""
+def get_unstructured_llm(*, temperature: float = DEFAULT_TEMPERATURE) -> ChatOpenAI:
+    """Plain ChatOpenAI for fallbacks / free-form completions."""
     return _base_chat(temperature=temperature)
 
 
@@ -61,7 +65,7 @@ def invoke_with_timeout(
 
     Why hand-rolled instead of `concurrent.futures.ThreadPoolExecutor`:
     ThreadPoolExecutor's workers are non-daemon, and interpreter shutdown
-    hooks wait for them — a stalled `ChatOllama.invoke` would then block
+    hooks wait for them — a stalled `ChatOpenAI.invoke` would then block
     `python` from exiting. We use a raw daemon `threading.Thread` so:
       1. Result via shared container + Event.
       2. If the worker overruns, we give up on it — the daemon thread dies

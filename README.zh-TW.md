@@ -10,8 +10,8 @@
 | --- | --- | --- |
 | 前端 | Streamlit（`:8501`） | 對話介面、呼叫後端 `/chat`、顯示產出的 workflow 與錯誤 |
 | 後端 | FastAPI + LangGraph（`:8000`） | Plan → Build → Assemble → Validate → Deploy 五階段 Agent |
-| LLM | Ollama `qwen3.5:9b` | 規劃與節點生成（JSON schema 結構化輸出） |
-| Embedding | Ollama `embeddinggemma` | 將節點目錄向量化 |
+| LLM | OpenAI 相容端點（vllm / OpenAI / LiteLLM） | 規劃與節點生成（JSON schema 結構化輸出） |
+| Embedding | OpenAI 相容端點 | 將節點目錄向量化 |
 | 向量庫 | Chroma（`.chroma/`） | `catalog_discovery`（529 節點）、`catalog_detailed`（詳細參數） |
 | 目標系統 | n8n `1.123.x`（Docker `:5678`） | 接收部署的 workflow JSON |
 
@@ -19,16 +19,17 @@
 
 - Docker Desktop（建議 28.x 以上）
 - Python 3.11+
-- 本機 Ollama 並已下載：
-  - `qwen3.5:9b`
-  - `embeddinggemma:latest`
+- 一個 OpenAI 相容推論端點，須同時服務一個 chat 模型和一個 embedding 模型。下列皆可：
+  - vllm（`vllm serve --served-model-name ...`）——本機推薦
+  - OpenAI（`https://api.openai.com/v1`）
+  - LiteLLM / OpenRouter / 其他 OpenAI 相容閘道
 
 檢查：
 
 ```bash
 docker --version
 python3.11 --version
-ollama list
+curl -s "$OPENAI_BASE_URL/models" -H "Authorization: Bearer $OPENAI_API_KEY" | jq '.data[].id'
 ```
 
 ## 快速開始
@@ -47,10 +48,19 @@ ollama list
 
 3. 開啟 <http://localhost:5678>，建立 owner 帳號後到 **Settings → n8n API → Create an API key**，把金鑰貼到 `.env` 的 `N8N_API_KEY`。
 
-4. 確認 Ollama 模型已就緒：
+4. 將後端指向你的推論伺服器。編輯 `.env`：
 
    ```bash
-   ollama list | grep -E 'qwen3\.5:9b|embeddinggemma'
+   OPENAI_BASE_URL=http://localhost:8000/v1   # 例如本機 vllm
+   OPENAI_API_KEY=EMPTY                       # vllm 只要非空字串；OpenAI 則填真實金鑰
+   LLM_MODEL=Qwen/Qwen2.5-7B-Instruct         # 必須對應 server 實際服務的 model id
+   EMBED_MODEL=BAAI/bge-m3                    # 必須對應 server 實際服務的 model id
+   ```
+
+   確認伺服器有同時服務上述兩個模型：
+
+   ```bash
+   curl -s http://localhost:8000/v1/models | jq '.data[].id'
    ```
 
 5. 匯入節點目錄到 Chroma（首次執行）：
@@ -62,7 +72,7 @@ ollama list
 6. 啟動後端（FastAPI，`:8000`）：
 
    ```bash
-   OLLAMA_BASE_URL=http://localhost:11434 \
+   OPENAI_BASE_URL=http://localhost:8000/v1 OPENAI_API_KEY=EMPTY \
    python -m uvicorn app.main:app \
        --app-dir backend --host 0.0.0.0 --port 8000 --reload
    ```
@@ -115,9 +125,9 @@ n8n_agent/
 │   ├── main.py                     # FastAPI 進入點
 │   ├── config.py                   # pydantic-settings
 │   ├── api/routes.py               # `/health`、`/chat`
-│   ├── agent/                      # LangGraph 節點與 graph 組裝
+│   ├── agent/                      # LangGraph 節點與 graph 組裝（含 OpenAI 相容 chat 包裝）
 │   ├── models/                     # Pydantic SSOT（AgentState / Workflow / …）
-│   ├── rag/                        # Chroma store、retriever、embedder
+│   ├── rag/                        # Chroma store、retriever、OpenAI 相容 embedder
 │   └── n8n/                        # n8n REST client
 ├── frontend/app.py                 # Streamlit UI
 └── tests/                          # unit + integration
@@ -129,9 +139,10 @@ n8n_agent/
 | --- | --- | --- |
 | `N8N_URL` | `http://localhost:5678` | n8n 位置 |
 | `N8N_API_KEY` | — | n8n API 金鑰（沒填則 `/chat` 走 dry-run） |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama 位置 |
-| `LLM_MODEL` | `qwen3.5:9b` | 生成模型 |
-| `EMBED_MODEL` | `embeddinggemma` | Embedding 模型 |
+| `OPENAI_BASE_URL` | `http://localhost:8000/v1` | OpenAI 相容推論端點（vllm / OpenAI / LiteLLM） |
+| `OPENAI_API_KEY` | `EMPTY` | Bearer token；vllm 不驗證，OpenAI 需填真實金鑰 |
+| `LLM_MODEL` | `Qwen/Qwen2.5-7B-Instruct` | 生成模型 id（需對應伺服器實際 served model） |
+| `EMBED_MODEL` | `BAAI/bge-m3` | Embedding 模型 id（需對應伺服器實際 served model） |
 | `CHROMA_PATH` | `.chroma` | Chroma 持久化目錄 |
 | `LLM_TIMEOUT_SECONDS` | `180` | 單次 LLM 呼叫牆鐘逾時 |
 

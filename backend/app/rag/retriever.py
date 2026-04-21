@@ -9,14 +9,14 @@ import json
 from typing import Any
 
 from app.models.catalog import NodeCatalogEntry, NodeDefinition
-from app.rag.embedder import OllamaEmbedder
+from app.rag.embedder import OpenAIEmbedder
 from app.rag.store import COLLECTION_DETAILED, COLLECTION_DISCOVERY, ChromaStore
 
 
 class Retriever:
     """High-level query surface over the two RAG collections."""
 
-    def __init__(self, store: ChromaStore, embedder: OllamaEmbedder) -> None:
+    def __init__(self, store: ChromaStore, embedder: OpenAIEmbedder) -> None:
         self._store = store
         self._embedder = embedder
 
