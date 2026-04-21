@@ -1,6 +1,6 @@
 # D0-2：Data Model（SSOT）
 
-> **版本**: v1.0.0 ｜ **狀態**: Draft ｜ **前置**: D0-1
+> **版本**: v1.1.0 ｜ **狀態**: Draft ｜ **前置**: D0-1
 
 ## Purpose
 
@@ -29,10 +29,12 @@
   - `models/enums.py` — StrEnum
   - `models/planning.py` — StepPlan
   - `models/node.py` — NodeCandidate, NodeCatalogEntry, NodeDefinition, NodeParameter
+  - `models/template.py` — WorkflowTemplate（v1.1 新增）
   - `models/workflow.py` — BuiltNode, Connection, WorkflowDraft
   - `models/validation.py` — ValidationIssue, ValidationReport
+  - `models/critic.py` — CriticConcern, CriticReport（v1.1 新增）
   - `models/agent.py` — AgentState
-  - `models/api.py` — ChatRequest, ChatResponse
+  - `models/api.py` — ChatRequest, ChatResponse, BuilderStepOutput, ConnectionsOutput, BuilderOutput(deprecated)
 
 ### 2. Enums
 
@@ -111,6 +113,10 @@ class NodeCatalogEntry(BaseModel):
     default_type_version: float | None = Field(
         default=None, description="Latest known typeVersion; may be filled during ingest."
     )
+    has_detail: bool = Field(
+        default=False,
+        description="Whether a detailed NodeDefinition exists for this type; see R2-2 v1.1.",
+    )
 
 
 class NodeParameter(BaseModel):
@@ -126,6 +132,13 @@ class NodeParameter(BaseModel):
     default: Any = None
     description: str | None = None
     options: list[dict[str, Any]] | None = None
+    schema_hint: Literal[
+        "url", "cron", "node_id", "expression", "credential_ref",
+        "email", "datetime", "secret", "resource_locator",
+    ] | None = Field(
+        default=None,
+        description="Semantic hint for the Builder / Critic; allowlist authoritative in R2-2 v1.1.",
+    )
 
 
 class NodeDefinition(BaseModel):
@@ -151,6 +164,28 @@ class NodeCandidate(BaseModel):
         default=None, description="None means type was found in discovery only; Builder may emit an empty shell."
     )
 ```
+
+### 4a. Workflow Template（RAG 來源；R2-4）
+
+```python
+# models/template.py
+from __future__ import annotations
+from pydantic import BaseModel
+
+
+class WorkflowTemplate(BaseModel):
+    """A reusable workflow example ingested from R2-4 sources (e.g. n8n.io templates)."""
+
+    template_id: str
+    name: str
+    description: str
+    category: str
+    use_case: str | None = None
+    node_types: list[str]
+    workflow_json: dict    # full n8n workflow, R2-1 shape
+```
+
+參考：R2-4 描述 ingest 與 provenance；本模型僅規範記憶體形式。
 
 ### 5. Workflow（Builder / Assembler 輸出）
 
@@ -214,16 +249,23 @@ class WorkflowDraft(BaseModel):
 ```python
 # models/validation.py
 from __future__ import annotations
+from typing import Literal
 from pydantic import BaseModel, Field
 from .enums import ValidationSeverity
 
 
 class ValidationIssue(BaseModel):
     rule_id: str = Field(..., description="See C1-4 rule table, e.g. 'V-NODE-001'.")
+    rule_class: Literal[
+        "structural", "catalog", "topology", "parameter", "security"
+    ] = Field(..., description="Rule family; see C1-4 v1.1. Required — breaking change vs v1.0.")
     severity: ValidationSeverity
     message: str
     node_name: str | None = None
     path: str | None = Field(default=None, description="Dotted path into the draft, e.g. 'nodes[3].parameters.url'.")
+    suggested_fix: str | None = Field(
+        default=None, description="Optional human-readable remediation hint (C1-4 v1.1)."
+    )
 
 
 class ValidationReport(BaseModel):
@@ -238,21 +280,57 @@ class ValidationReport(BaseModel):
         return cls(ok=len(errs) == 0, errors=errs, warnings=warns)
 ```
 
+### 6a. Critic（C1-7）
+
+```python
+# models/critic.py
+from __future__ import annotations
+from typing import Literal
+from pydantic import BaseModel, Field
+
+
+class CriticConcern(BaseModel):
+    """One concern raised by the Critic over a draft. See C1-7."""
+
+    severity: Literal["block", "warn"]
+    node_name: str | None = None
+    field: str | None = None
+    rule: Literal[
+        "empty_required_param", "placeholder_value", "intent_mismatch",
+        "unbound_credential", "unreachable_node", "implausible_schedule",
+        "wrong_http_method", "missing_auth_on_external_call",
+    ]
+    message: str
+    suggested_fix: str
+
+
+class CriticReport(BaseModel):
+    """Aggregate Critic verdict for one validation round. See C1-7."""
+
+    ok: bool = Field(alias="pass")    # pass is a Python keyword; expose via alias
+    concerns: list[CriticConcern] = Field(default_factory=list)
+    latency_ms: int = 0
+
+    model_config = {"populate_by_name": True}
+```
+
 ### 7. Agent State（LangGraph）
 
 ```python
 # models/agent.py
 from __future__ import annotations
-from typing import Any
+from typing import Any, Literal
 from pydantic import BaseModel, Field
 from .planning import StepPlan
 from .node import NodeCandidate
+from .template import WorkflowTemplate
 from .workflow import BuiltNode, Connection, WorkflowDraft
 from .validation import ValidationReport
+from .critic import CriticReport
 
 
 class AgentState(BaseModel):
-    """LangGraph shared state. Each node reads/writes a subset — see C1-1."""
+    """LangGraph shared state. Each node reads/writes a subset — see C1-1 v2.0."""
 
     # input
     user_message: str
@@ -261,10 +339,19 @@ class AgentState(BaseModel):
     plan: list[StepPlan] = Field(default_factory=list)
     discovery_hits: list[dict[str, Any]] = Field(default_factory=list)
 
+    # templates (C1-2 v1.1 + R2-4)
+    templates: list[WorkflowTemplate] = Field(default_factory=list)
+
+    # HITL (C1-1 v2.0 §5)
+    plan_approved: bool = False
+    session_id: str | None = None
+
     # builder
     candidates: list[NodeCandidate] = Field(default_factory=list)
     built_nodes: list[BuiltNode] = Field(default_factory=list)
     connections: list[Connection] = Field(default_factory=list)
+    # per-step builder loop (C1-1 v2.0 §2.3)
+    current_step_idx: int = 0
 
     # assembler
     draft: WorkflowDraft | None = None
@@ -273,6 +360,12 @@ class AgentState(BaseModel):
     validation: ValidationReport | None = None
     retry_count: int = 0
 
+    # critic (C1-7)
+    critic: CriticReport | None = None
+
+    # retry routing (C1-1 v2.0 §2.7)
+    fix_target: Literal["planner", "builder"] | None = None
+
     # deployer
     workflow_id: str | None = None
     workflow_url: str | None = None
@@ -280,12 +373,21 @@ class AgentState(BaseModel):
     # diagnostics
     messages: list[dict[str, str]] = Field(
         default_factory=list,
-        description="Role/content tuples. Validator errors are appended here before retry.",
+        description=(
+            "Role/content tuples. role ∈ "
+            "{'user','planner','builder','validator','critic',"
+            "'router','hitl','deployer','system'}. "
+            "Validator errors are appended here before retry."
+        ),
     )
     error: str | None = None
+
+    model_config = {"extra": "ignore"}
 ```
 
-### 8. API models
+> `messages[*].role` 的合法值集合：`"user" | "planner" | "builder" | "validator" | "critic" | "router" | "hitl" | "deployer" | "system"`。新角色（critic / router / hitl）由 C1-1 v2.0 與 C1-7 引入。
+
+### 8. API / LLM output wrappers
 
 ```python
 # models/api.py
@@ -293,6 +395,7 @@ from __future__ import annotations
 from typing import Any
 from pydantic import BaseModel, Field
 from .validation import ValidationIssue
+from .workflow import BuiltNode, Connection
 
 
 class ChatRequest(BaseModel):
@@ -307,6 +410,31 @@ class ChatResponse(BaseModel):
     retry_count: int = 0
     errors: list[ValidationIssue] = Field(default_factory=list)
     error_message: str | None = None
+
+
+# --- LLM structured-output wrappers (C1-1 v2.0 per-step loop) ---
+
+class BuilderStepOutput(BaseModel):
+    """Single-node Builder call output. Replaces BuilderOutput in new graph."""
+
+    node: BuiltNode
+
+
+class ConnectionsOutput(BaseModel):
+    """Connections-only output from the Assembler / connection phase."""
+
+    connections: list[Connection]
+
+
+class BuilderOutput(BaseModel):
+    """DEPRECATED (v1.0). Batch output of all nodes + connections.
+
+    Retained for backwards-compat reference only; new graph uses
+    BuilderStepOutput + ConnectionsOutput. See C1-1 v2.0 §2.3.
+    """
+
+    nodes: list[BuiltNode]
+    connections: list[Connection] = Field(default_factory=list)
 ```
 
 ## Errors
@@ -316,6 +444,14 @@ class ChatResponse(BaseModel):
   - API 入口失敗 → FastAPI 回 422。
 - `BuiltNode.position` 若非 `[x, y]` 會 raise，屬於 Builder 內部 bug（C1-1 retry 不救）。
 
+### v1 → v1.1 相容性
+
+- `AgentState` 新欄位（`plan_approved`, `session_id`, `current_step_idx`, `templates`, `critic`, `fix_target`）皆有 default；v1 構造器 `AgentState(user_message="x")` 繼續可用。
+- `ValidationIssue.rule_class` 為**必填**，屬**破壞性變更**；所有舊 caller 必須在構造時提供 `rule_class`。`suggested_fix` 為可選。
+- `BuilderOutput { nodes, connections }` 保留定義以資參考，但新 graph 不再使用；改以 `BuilderStepOutput` + `ConnectionsOutput` 對應 C1-1 v2.0 的 per-step loop。
+- Pydantic schema serialization 對未知欄位採 `extra="ignore"`（v1 未明訂，v1.1 加入於 `AgentState.model_config`）。
+- `NodeCatalogEntry.has_detail` 與 `NodeParameter.schema_hint` 皆 default 為 `False` / `None`，對舊 ingest 輸出相容；權威 allowlist 見 R2-2 v1.1。
+
 ## Acceptance Criteria
 
 - [ ] 每個 code block 可在 `python -c "from pydantic import BaseModel; exec(open(...).read())"` 環境 import 成功。
@@ -323,3 +459,14 @@ class ChatResponse(BaseModel):
 - [ ] 所有欄位名稱與 R2-1 的 n8n JSON 欄位（或 alias）一致。
 - [ ] StrEnum 值與 C1-4 rule 訊息模板使用的字串一致。
 - [ ] `WorkflowDraft.settings` 預設 `{"executionOrder": "v1"}`，對齊 plan。
+- [ ] `AgentState(user_message="x")` 可建構，所有新欄位取 default（`plan_approved=False`、`current_step_idx=0`、`templates=[]`、`critic=None`、`fix_target=None`、`session_id=None`）。
+- [ ] `ValidationIssue(rule_id="V-TOP-001", rule_class="structural", severity=ValidationSeverity.ERROR, message="...")` 建構成功；省略 `rule_class` 會 raise。
+- [ ] `CriticReport.model_validate({"pass": True, "concerns": []})` 成功，且 `report.ok is True`。
+- [ ] `WorkflowTemplate` 做 `model_dump()` → `model_validate()` 的 JSON roundtrip 結果一致。
+
+## 變更紀錄
+
+| 版本 | 日期 | 變更 |
+|---|---|---|
+| v1.0.0 | 2026-04-20 | 初版 SSOT |
+| v1.1.0 | 2026-04-21 | AgentState 加 plan_approved/session_id/current_step_idx/templates/critic/fix_target；ValidationIssue 加 rule_class（破壞性）+ suggested_fix；新增 WorkflowTemplate、CriticConcern、CriticReport、BuilderStepOutput、ConnectionsOutput；NodeCatalogEntry/NodeParameter 擴 R2-2 v1.1 欄位 |
