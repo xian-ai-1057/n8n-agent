@@ -7,10 +7,10 @@
 ## 全景時序
 
 ```
-┌────────────┐  POST /chat  ┌───────────────┐            ┌──────────┐   ┌─────────┐
-│ Streamlit  │────────────▶│  FastAPI       │──invoke──▶│ LangGraph│──▶│ Ollama  │
-│ frontend   │◀──────────  │  app.main:app  │◀──state──│  agent   │◀──│ / Chroma│
-└────────────┘   JSON       └───────┬───────┘            └────┬─────┘   └─────────┘
+┌────────────┐  POST /chat  ┌───────────────┐            ┌──────────┐   ┌──────────────┐
+│ Streamlit  │────────────▶│  FastAPI       │──invoke──▶│ LangGraph│──▶│ OpenAI-API   │
+│ frontend   │◀──────────  │  app.main:app  │◀──state──│  agent   │◀──│ (vllm) / Chroma│
+└────────────┘   JSON       └───────┬───────┘            └────┬─────┘   └──────────────┘
                                     │                          │
                                     │                          ▼
                                     │                    ┌──────────┐
@@ -31,7 +31,7 @@
 | --- | --- | --- |
 | [backend/app/main.py](../backend/app/main.py) | `create_app()` | 建立 FastAPI app、註冊 CORS、掛 `api.routes.router` |
 | [backend/app/api/routes.py](../backend/app/api/routes.py) | `chat(req: ChatRequest)` | 於背景 thread 執行 `run_cli(req.message, deploy=True)`，180s 牆鐘逾時；回傳 `ChatResponse` |
-| [backend/app/api/routes.py](../backend/app/api/routes.py) | `health()` | 逐一探測 Ollama / n8n / Chroma，回傳 `{ok, ollama, n8n, chroma}` |
+| [backend/app/api/routes.py](../backend/app/api/routes.py) | `health()` | 逐一探測 OpenAI 相容端點 / n8n / Chroma，回傳 `{ok, openai, n8n, chroma}` |
 
 ## 3. LangGraph Pipeline
 
@@ -57,10 +57,10 @@ START
 | 檔案 | 函式 | 動作 |
 | --- | --- | --- |
 | [agent/planner.py](../backend/app/agent/planner.py) | `plan_step(state)` | 1) 呼叫 `Retriever.search_discovery(user_message, k=8)` 取得 `NodeCatalogEntry[]`；2) 補上 `if/switch` 等核心控制節點；3) 組 planner prompt；4) `invoke_with_timeout(llm, prompt)` 取得 `PlannerOutput`；5) 回傳 `{plan, discovery_hits, messages}` |
-| [rag/retriever.py](../backend/app/rag/retriever.py) | `search_discovery(query, k)` | 呼叫 `OllamaEmbedder.embed_query`→`ChromaStore.query("catalog_discovery", ...)` |
-| [rag/embedder.py](../backend/app/rag/embedder.py) | `embed_query(text)` | POST Ollama `/api/embed`（`embeddinggemma`） |
-| [agent/llm.py](../backend/app/agent/llm.py) | `get_llm(schema)` | 建 `ChatOllama`，以 `method="json_schema"` 做結構化輸出 |
-| [agent/llm.py](../backend/app/agent/llm.py) | `invoke_with_timeout(llm, prompt, seconds)` | daemon thread + `Event`，超時即拋 `LLMTimeoutError`（避開 Ollama 長時間鎖死） |
+| [rag/retriever.py](../backend/app/rag/retriever.py) | `search_discovery(query, k)` | 呼叫 `OpenAIEmbedder.embed`→`ChromaStore.query("catalog_discovery", ...)` |
+| [rag/embedder.py](../backend/app/rag/embedder.py) | `embed(text)` | 透過 `langchain_openai.OpenAIEmbeddings` 呼叫 `$OPENAI_BASE_URL/embeddings`（`$EMBED_MODEL`） |
+| [agent/llm.py](../backend/app/agent/llm.py) | `get_llm(schema)` | 建 `ChatOpenAI`，以 `method="json_schema"` 做結構化輸出 |
+| [agent/llm.py](../backend/app/agent/llm.py) | `invoke_with_timeout(llm, prompt, seconds)` | daemon thread + `Event`，超時即拋 `LLMTimeoutError`（避開推論伺服器長時間鎖死） |
 
 ### 3.2 `build_nodes`
 

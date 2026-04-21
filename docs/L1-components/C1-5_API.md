@@ -74,7 +74,7 @@ class ChatRequest(BaseModel):
 | Validator 連續失敗 | 422 | `ok=false` + errors |
 | n8n 400 / 409 | 502 | `ok=false`, `error_message` 含上游訊息 |
 | n8n auth 失敗 | 502 | 同上 |
-| Ollama / n8n / Chroma 不可達 | 503 | `ok=false`, `error_message="upstream unavailable: <which>"` |
+| OpenAI 相容端點 / n8n / Chroma 不可達 | 503 | `ok=false`, `error_message="upstream unavailable: <which>"` |
 | 未預期例外 | 500 | `ok=false`, `error_message="internal error"` |
 
 ### 2. GET `/health`
@@ -84,8 +84,11 @@ class ChatRequest(BaseModel):
 ```json
 {
   "ok": true,
+  "openai": true,
+  "n8n": true,
+  "chroma": true,
   "checks": {
-    "ollama": {"ok": true, "latency_ms": 42},
+    "openai": {"ok": true, "latency_ms": 42},
     "n8n":    {"ok": true, "latency_ms": 88},
     "chroma": {"ok": true, "detail": "discovery=529,detailed=30"}
   }
@@ -95,7 +98,7 @@ class ChatRequest(BaseModel):
 任一 check 失敗則 top-level `ok=false`，status 仍為 200（便於監控端 probe 後自行判斷），`checks.<name>.ok=false` 並帶 `error`。
 
 Check 實作：
-- `ollama`：`GET {OLLAMA_BASE_URL}/api/tags`；200 視為 up。
+- `openai`：`GET {OPENAI_BASE_URL}/models`（帶 `Authorization: Bearer $OPENAI_API_KEY`）；200 且 `$LLM_MODEL`、`$EMBED_MODEL` 皆在 `data[*].id` 中視為 up。
 - `n8n`：呼叫 `N8nClient.health()`（C1-3 §4）。
 - `chroma`：嘗試 `collection.count()` on 兩個 collection。
 
@@ -136,7 +139,7 @@ Phase 3 可選將 LangGraph 以 background task 跑；MVP 直接同步（Streaml
 | `N8nAuthError` | 502 | `error_message="n8n auth failed"` |
 | `N8nBadRequestError` | 502 | `error_message=f"n8n rejected payload: {e.message}"` |
 | `N8nUnavailable` | 503 | |
-| `OllamaUnavailable`（LLM or embedding） | 503 | |
+| `EmbedderUnavailable`（OpenAI 相容 embedding 端點） | 503 | |
 | `RagNotInitialized` | 503 | `error_message="run bootstrap_rag first"` |
 | 其他 | 500 | 記 log、不露內部 traceback |
 

@@ -1,8 +1,14 @@
 # D0-4 MVP Verification Results
 
+> **歷史紀錄** — 本驗收報告在「OpenAI 相容介面重構」之前完成，當時 backend
+> 直接走 Ollama（`langchain-ollama`、`ChatOllama`）。重構之後模型層改由
+> `langchain-openai` / `ChatOpenAI` 透過 `OPENAI_BASE_URL` 呼叫任意 OpenAI
+> 相容伺服器（vllm、OpenAI、LiteLLM 等）；下列時序與現象屬於當時環境的
+> 量測資料，保留作為 baseline。
+
 **執行日期**: 2026-04-20
-**LLM**: `qwen3:8b` (Ollama, Q4_K_M, 8.2B, `method="json_schema"`)
-**Embed**: `embeddinggemma:latest`
+**LLM**: `qwen3:8b` (Ollama, Q4_K_M, 8.2B, `method="json_schema"`；重構後改以 OpenAI 相容介面呼叫等價模型)
+**Embed**: `embeddinggemma:latest`（重構後改以 OpenAI 相容 `/embeddings` 呼叫）
 **n8n**: `n8nio/n8n:1.123.31` @ `localhost:5678`
 
 ---
@@ -62,10 +68,10 @@
 ## 3. 已知問題
 
 ### 3.1 Builder 偶發 stall（S2 r2）
-- **現象**：`POST /api/chat` 回 200 OK 後，Ollama runner 降到 ~6% CPU、Python 客戶端 0.4% CPU，連線維持 ESTABLISHED 但不再有資料流動；持續 20+ 分鐘無回應。
-- **判定**：qwen3:8b + `method="json_schema"` 對特定 prompt/schema 組合觸發 grammar-constrained decoding pathological case（已知 Ollama/llama.cpp 行為）。
+- **現象**：`POST /api/chat` 回 200 OK 後，推論 runner 降到 ~6% CPU、Python 客戶端 0.4% CPU，連線維持 ESTABLISHED 但不再有資料流動；持續 20+ 分鐘無回應。
+- **判定**：qwen3:8b + `method="json_schema"` 對特定 prompt/schema 組合觸發 grammar-constrained decoding pathological case（已知 Ollama/llama.cpp 行為；重構後 vllm guided decoding 具備類似風險，仍保留 timeout 防線）。
 - **緩解 v2**：
-  1. 為 `ChatOllama.with_structured_output` 包 asyncio timeout（如 180s），超時視為驗證錯誤進 retry 路徑。
+  1. 為結構化輸出呼叫包 asyncio timeout（如 180s），超時視為驗證錯誤進 retry 路徑。
   2. Builder 按 plan step 切分多次較小 LLM call（目前一次生成整張 workflow）。
   3. 嘗試 `method="function_calling"` + 非 thinking 模型（qwen2.5）降低 decode 複雜度。
 
@@ -93,7 +99,7 @@
 以 §3 提及的兩個 v2 改進為目標，在同一日內落地：
 
 **修復 1 — Builder LLM 加硬 timeout**（`app/agent/llm.py:invoke_with_timeout`）
-- 用 daemon `threading.Thread` + `Event.wait(timeout=180s)` 包 `ChatOllama.invoke`。
+- 用 daemon `threading.Thread` + `Event.wait(timeout=180s)` 包 chat 模型 `.invoke()`（重構後為 `ChatOpenAI.invoke`，當時為 `ChatOllama.invoke`）。
 - 超時丟 `LLMTimeoutError`；builder/planner 皆接住，builder 轉為空節點讓 validator/retry 接手。
 - 不使用 `concurrent.futures.ThreadPoolExecutor`：其 worker 非 daemon，interpreter exit hook 會等 worker 完成，導致 stall 阻斷 python 退出。
 

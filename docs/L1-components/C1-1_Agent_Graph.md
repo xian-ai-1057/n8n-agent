@@ -13,7 +13,7 @@
 - n8n client（C1-3）
 - Validator（C1-4）
 - Prompts（R2-3）
-- LLM：`ChatOllama(model=LLM_MODEL).with_structured_output(Model, method="json_schema")`
+- LLM：`ChatOpenAI(model=LLM_MODEL, base_url=OPENAI_BASE_URL, api_key=OPENAI_API_KEY).with_structured_output(Model, method="json_schema")`
 
 ## Outputs
 

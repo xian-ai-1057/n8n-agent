@@ -10,7 +10,7 @@
 
 - 使用者自然語言需求（經 Streamlit）
 - 現有資產：`n8n_official_nodes_reference.xlsx`（529 節點）、`99_Archive/n8n_Agent/` 可移植之程式碼與節點 JSON。
-- 外部服務：本機 Ollama（`qwen3.5:9b`、`embeddinggemma:latest`）、docker 上 n8n `1.123.31`。
+- 外部服務：OpenAI 相容推論端點（預設 vllm 本機 `http://localhost:8000/v1`；亦可指向 OpenAI / LiteLLM 等）、docker 上 n8n `1.123.31`。
 
 ## Outputs
 
@@ -33,9 +33,9 @@
                                     └──┬──────────────────────────────┬───┘
                                        │                              │
                               ┌────────▼──────────┐        ┌──────────▼──────────┐
-                              │ ChromaDB (local)  │        │ Ollama (host)       │
-                              │  ├─ catalog_disco │        │  qwen3.5:9b         │
-                              │  └─ catalog_detai │        │  embeddinggemma     │
+                              │ ChromaDB (local)  │        │ OpenAI-compat API   │
+                              │  ├─ catalog_disco │        │  $LLM_MODEL         │
+                              │  └─ catalog_detai │        │  $EMBED_MODEL       │
                               └───────────────────┘        └─────────────────────┘
 ```
 
@@ -46,10 +46,10 @@
 | FE | Streamlit UI | Streamlit | C1-6 |
 | API | FastAPI backend | FastAPI + uvicorn | C1-5 |
 | GRAPH | LangGraph state machine | LangGraph 1.1.x | C1-1 |
-| RAG | 雙索引檢索 | ChromaDB + embeddinggemma | C1-2 |
+| RAG | 雙索引檢索 | ChromaDB + OpenAI 相容 embeddings | C1-2 |
 | N8N | n8n REST client | httpx | C1-3 |
 | VAL | Deterministic validator | pure Python | C1-4 |
-| LLM | Ollama adapter | langchain-ollama | C1-1 |
+| LLM | OpenAI 相容 adapter | langchain-openai | C1-1 |
 | DATA | 節點資料 | xlsx + JSON | R2-2 |
 
 ### 3. 單輪對話資料流
@@ -75,11 +75,11 @@
 | 項目 | 選擇 | 說明 |
 |---|---|---|
 | n8n | `n8nio/n8n:1.123.31` | docker-compose 只起 n8n；`.n8n_data` 卷保 API key |
-| Ollama | 本機 host | backend 以 `http://host.docker.internal:11434` 連 |
-| 生成 LLM | `qwen3.5:9b` | 原 tag 直接使用 |
-| Embedding | `embeddinggemma:latest` | RAG 用 |
-| Backend | Python 3.11 + FastAPI + LangGraph 1.1.x | `langchain-ollama` 1.1.x |
-| 結構化輸出 | `ChatOllama(...).with_structured_output(Model, method="json_schema")` | 走 Ollama native schema 約束，不使用 `format="json"` |
+| 推論端點 | OpenAI 相容（預設本機 vllm） | `OPENAI_BASE_URL=http://localhost:8000/v1`（容器內可用 `http://host.docker.internal:8000/v1`） |
+| 生成 LLM | `$LLM_MODEL` | 預設 `Qwen/Qwen2.5-7B-Instruct`；需與推論伺服器 `--served-model-name` 對齊 |
+| Embedding | `$EMBED_MODEL` | 預設 `BAAI/bge-m3`；同樣需與伺服器對齊 |
+| Backend | Python 3.11 + FastAPI + LangGraph 1.1.x | `langchain-openai` 0.3.x |
+| 結構化輸出 | `ChatOpenAI(...).with_structured_output(Model, method="json_schema")` | 走 OpenAI Structured Outputs / vllm guided decoding；不使用 `function_calling`（vllm 部分模型不支援） |
 | Vector store | ChromaDB（persistent local） | 沿用 archive |
 | 前端 | Streamlit | 呼叫 backend `/chat` |
 
@@ -107,7 +107,7 @@
 | 單輪最壞情形（retry×2） | ≤ 120 秒 |
 | 部署模式 | 本地單一使用者、無外網依賴（除 n8n credentials 的真實服務） |
 | 觀察性 | stdout 結構化 log，能追 `plan → retrieved → workflow_json → deploy_id` |
-| 資源占用 | backend 容器 ≤ 1.5GB RAM（不含 Ollama） |
+| 資源占用 | backend 容器 ≤ 1.5GB RAM（不含推論伺服器本身的記憶體） |
 
 ## Errors
 
@@ -118,7 +118,7 @@
 | `PlanningError` | LLM 無法產出 valid StepPlan（schema fail） | 是（HTTP 500） |
 | `BuildingError` | Builder 連續 2 次產出 validator 拒絕 | 是（HTTP 422，附 errors） |
 | `DeployError` | n8n POST 失敗 | 是（HTTP 502，附上游訊息） |
-| `UpstreamUnavailable` | Ollama / n8n / Chroma 其中之一不可達 | 是（HTTP 503） |
+| `UpstreamUnavailable` | OpenAI 相容推論端點 / n8n / Chroma 其中之一不可達 | 是（HTTP 503） |
 
 ## Acceptance Criteria
 

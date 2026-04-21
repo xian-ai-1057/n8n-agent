@@ -10,7 +10,7 @@
 
 - `data/nodes/catalog_discovery.json`（由 `scripts/xlsx_to_catalog.py` 從 `n8n_official_nodes_reference.xlsx` 產出；529 筆，格式見 R2-2）
 - `data/nodes/definitions/*.json`（30 筆詳細節點，格式見 R2-2）
-- Ollama embedding：`embeddinggemma:latest`
+- OpenAI 相容 embedding 端點：`$OPENAI_BASE_URL/embeddings`，模型 `$EMBED_MODEL`（預設 `BAAI/bge-m3`）
 - `CHROMA_PATH` 環境變數
 
 ## Outputs
@@ -32,15 +32,17 @@
 `param_summary` = 取 `parameters[*].display_name` join "、"（避免把完整 JSON 塞進 embedding 文本）。
 `parameters_json` = `json.dumps(definition.parameters)` 字串；retrieve 時由 `get_detail` 反序列化。
 
-Chroma collection 初始化：
+Chroma collection 初始化（實作上 embedding 由 backend 端預先產生後傳入 `upsert/query`，
+Chroma 本身不持有 embedding function，詳見 `backend/app/rag/store.py`）：
 
 ```python
 client = chromadb.PersistentClient(path=CHROMA_PATH)
 discovery = client.get_or_create_collection(
     name="catalog_discovery",
-    embedding_function=OllamaEmbeddingFunction(model=EMBED_MODEL, url=OLLAMA_BASE_URL),
     metadata={"hnsw:space": "cosine"},
 )
+# Embedding 透過 OpenAIEmbedder（langchain_openai.OpenAIEmbeddings）：
+# base_url = OPENAI_BASE_URL, api_key = OPENAI_API_KEY, model = EMBED_MODEL
 ```
 
 ### 2. Ingest API（scripts / ingest modules）
@@ -117,7 +119,7 @@ Builder 呼叫 `get_detail(type)` 回 None 時：
 
 | 情境 | 行為 |
 |---|---|
-| Ollama embedding 不可達 | ingest / retriever 直接 raise `OllamaUnavailable`（不吞） |
+| embedding 端點不可達 | ingest / retriever 直接 raise `EmbedderUnavailable`（不吞） |
 | collection 不存在（未跑 ingest） | retriever 啟動時 raise `RagNotInitialized` |
 | `definitions/*.json` 解析失敗 | ingest 印 warning 並 skip 該檔（不中斷整批） |
 | 同 `type` 跨兩檔 | 視為資料錯誤，raise |

@@ -19,7 +19,7 @@
 
 ## Contracts — 共同規範
 
-- LLM：`qwen3.5:9b` via `ChatOllama`。
+- LLM：`$LLM_MODEL`（預設 `Qwen/Qwen2.5-7B-Instruct`）via `ChatOpenAI`，端點為任意 OpenAI 相容伺服器（vllm / OpenAI / LiteLLM）。
 - 不使用 `format="json"`；使用 `json_schema` 約束解碼。
 - 語系策略：指令用 Traditional Chinese，JSON schema 欄位名保持 English；範例內容可雙語混用但以英文為主。
 - 禁止 prompt 內出現 backtick 以外的 markdown 標題（避免與 LangChain prompt 模板互干擾）。
