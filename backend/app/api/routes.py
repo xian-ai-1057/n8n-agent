@@ -29,10 +29,12 @@ from ..agent.graph import run_cli
 from ..config import get_settings
 from ..models.agent_state import AgentState
 from ..models.api import ChatRequest, ChatResponse
+from ..request_context import request_id_var
 from ..n8n.client import N8nClient, _connections_list_to_map
 from ..n8n.errors import (
     N8nAuthError,
     N8nBadRequestError,
+    N8nServerError,
     N8nUnavailable,
 )
 from ..rag.store import COLLECTION_DETAILED, COLLECTION_DISCOVERY, ChromaStore
@@ -230,6 +232,7 @@ def _status_for(response: ChatResponse) -> int:
 async def chat(req: ChatRequest, request: Request) -> JSONResponse:
     settings = get_settings()
     rid = uuid.uuid4().hex[:8]
+    rid_token = request_id_var.set(rid)
     t0 = time.monotonic()
     deploy = bool(settings.n8n_api_key)
 
@@ -237,6 +240,19 @@ async def chat(req: ChatRequest, request: Request) -> JSONResponse:
         "chat[%s] start len=%d deploy=%s", rid, len(req.message), deploy
     )
 
+    try:
+        return await _run_chat(req, settings, rid, t0, deploy)
+    finally:
+        request_id_var.reset(rid_token)
+
+
+async def _run_chat(
+    req: ChatRequest,
+    settings,
+    rid: str,
+    t0: float,
+    deploy: bool,
+) -> JSONResponse:
     try:
         state: AgentState = await asyncio.wait_for(
             asyncio.to_thread(run_cli, req.message, deploy=deploy),
@@ -283,6 +299,28 @@ async def chat(req: ChatRequest, request: Request) -> JSONResponse:
             content={
                 "ok": False,
                 "error_message": f"upstream unavailable: n8n ({exc})",
+                "retry_count": 0,
+                "errors": [],
+            },
+        )
+    except N8nServerError as exc:
+        logger.error("chat[%s] n8n %s: %s", rid, exc.status_code, exc)
+        return JSONResponse(
+            status_code=502,
+            content={
+                "ok": False,
+                "error_message": f"n8n upstream error {exc.status_code}",
+                "retry_count": 0,
+                "errors": [],
+            },
+        )
+    except ValueError as exc:
+        logger.error("chat[%s] bad payload: %s", rid, exc)
+        return JSONResponse(
+            status_code=422,
+            content={
+                "ok": False,
+                "error_message": str(exc),
                 "retry_count": 0,
                 "errors": [],
             },

@@ -29,6 +29,11 @@ class BuilderOutput(BaseModel):
     connections: list[Connection]
 
 
+# Rough char budget for the builder prompt. Above this we drop trailing
+# definitions (least-ranked by plan order) to avoid LLM context overrun.
+_PROMPT_CHAR_BUDGET: int = 12000
+
+
 def _collect_candidates(
     plan: list, retriever: RetrieverProtocol
 ) -> tuple[list[NodeCandidate], list]:
@@ -53,6 +58,46 @@ def _collect_candidates(
     return candidates, defs_ordered
 
 
+def _render_builder_prompt(
+    state: AgentState,
+    plan_payload: list[dict[str, Any]],
+    defs_payload: list[dict[str, Any]],
+) -> str:
+    return render_prompt(
+        "builder",
+        {
+            "user_message": state.user_message,
+            "plan_json": json.dumps(plan_payload, ensure_ascii=False),
+            "definitions_json": json.dumps(defs_payload, ensure_ascii=False),
+        },
+    )
+
+
+def _render_fix_prompt(
+    state: AgentState,
+    defs_payload: list[dict[str, Any]],
+) -> str:
+    return render_prompt(
+        "fix",
+        {
+            "user_message": state.user_message,
+            "previous_nodes_json": json.dumps(
+                [n.model_dump(by_alias=True, exclude_none=True) for n in state.built_nodes],
+                ensure_ascii=False,
+            ),
+            "previous_connections_json": json.dumps(
+                [c.model_dump(mode="json") for c in state.connections],
+                ensure_ascii=False,
+            ),
+            "errors_json": json.dumps(
+                [e.model_dump(mode="json") for e in state.validation.errors],
+                ensure_ascii=False,
+            ),
+            "definitions_json": json.dumps(defs_payload, ensure_ascii=False),
+        },
+    )
+
+
 def build_nodes(
     state: AgentState,
     retriever: RetrieverProtocol,
@@ -73,36 +118,39 @@ def build_nodes(
     )
 
     if is_retry:
-        prompt = render_prompt(
-            "fix",
-            {
-                "user_message": state.user_message,
-                "previous_nodes_json": json.dumps(
-                    [n.model_dump(by_alias=True, exclude_none=True) for n in state.built_nodes],
-                    ensure_ascii=False,
-                ),
-                "previous_connections_json": json.dumps(
-                    [c.model_dump(mode="json") for c in state.connections],
-                    ensure_ascii=False,
-                ),
-                "errors_json": json.dumps(
-                    [e.model_dump(mode="json") for e in state.validation.errors],
-                    ensure_ascii=False,
-                ),
-                "definitions_json": json.dumps(defs_payload, ensure_ascii=False),
-            },
+        logger.info(
+            "builder retry=%d fixing=%s",
+            state.retry_count,
+            [e.rule_id for e in state.validation.errors],
         )
         prompt_name = "fix"
+        prompt = _render_fix_prompt(state, defs_payload)
     else:
-        prompt = render_prompt(
-            "builder",
-            {
-                "user_message": state.user_message,
-                "plan_json": json.dumps(plan_payload, ensure_ascii=False),
-                "definitions_json": json.dumps(defs_payload, ensure_ascii=False),
-            },
-        )
         prompt_name = "builder"
+        prompt = _render_builder_prompt(state, plan_payload, defs_payload)
+
+    if len(prompt) > _PROMPT_CHAR_BUDGET and defs_payload:
+        original_len = len(prompt)
+        keep = max(1, len(defs_payload) // 2)
+        while len(prompt) > _PROMPT_CHAR_BUDGET and keep >= 1:
+            trimmed = defs_payload[:keep]
+            if is_retry:
+                prompt = _render_fix_prompt(state, trimmed)
+            else:
+                prompt = _render_builder_prompt(state, plan_payload, trimmed)
+            if keep == 1:
+                break
+            keep = max(1, keep // 2)
+        logger.warning(
+            "builder prompt trimmed defs %d->%d len %d->%d (budget=%d)",
+            len(defs_payload),
+            keep,
+            original_len,
+            len(prompt),
+            _PROMPT_CHAR_BUDGET,
+        )
+    else:
+        logger.info("builder prompt len=%d defs=%d", len(prompt), len(defs_payload))
 
     llm = get_llm(BuilderOutput)
     try:

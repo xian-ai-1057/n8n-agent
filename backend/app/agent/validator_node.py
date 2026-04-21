@@ -33,6 +33,14 @@ def validate_step(state: AgentState) -> dict[str, Any]:
     )
     updates: dict[str, Any] = {"validation": report}
     if not report.ok:
+        for e in report.errors:
+            logger.warning(
+                "validator fail rule=%s node=%s path=%s msg=%s",
+                e.rule_id,
+                e.node_name,
+                e.path,
+                e.message,
+            )
         updates["messages"] = state.messages + [
             {
                 "role": "validator",
