@@ -37,7 +37,8 @@
       "type": "string",
       "required": true,
       "default": "",
-      "description": "The Airtable base id"
+      "description": "The Airtable base id",
+      "schema_hint": "resource_locator"
     },
     {
       "name": "table",

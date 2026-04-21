@@ -24,7 +24,8 @@
       "type": "string",
       "required": false,
       "default": "",
-      "description": "The date/time expression or ISO string to operate on"
+      "description": "The date/time expression or ISO string to operate on",
+      "schema_hint": "datetime"
     },
     {
       "name": "format",

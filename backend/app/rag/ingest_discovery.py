@@ -22,37 +22,56 @@ from app.rag.store import COLLECTION_DISCOVERY, ChromaStore
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _DEFAULT_CATALOG = _PROJECT_ROOT / "data" / "nodes" / "catalog_discovery.json"
+_DEFAULT_DEFINITIONS = _PROJECT_ROOT / "data" / "nodes" / "definitions"
 
 _BATCH = 32
 _PROGRESS_EVERY = 50
 
 
-def _build_document(entry: dict[str, Any]) -> str:
-    """Build the embeddable document string.
+def _scan_detail_slugs(definitions_dir: Path) -> set[str]:
+    """Return the set of filename stems present in definitions_dir.
 
-    We use embeddinggemma's document-side prompt (`title: ... | text: ...`) so
-    retrieval aligns with the query prompt applied in `OpenAIEmbedder.embed()`.
-    The display_name is repeated in both title and text to anchor the vector.
+    R2-2 §6: slug rule is the part after the dot in `type`
+    (e.g. `n8n-nodes-base.httpRequest` → `httpRequest.json`;
+    `@n8n/n8n-nodes-langchain.agent` → `agent.json`). Callers derive the slug
+    for each discovery entry via `type.rpartition('.')[-1]` and test membership.
+    """
+    if not definitions_dir.is_dir():
+        return set()
+    return {p.stem for p in definitions_dir.glob("*.json")}
+
+
+def _slug_for(node_type: str) -> str:
+    return node_type.rpartition(".")[-1]
+
+
+def _build_document(entry: dict[str, Any]) -> str:
+    """Build the embeddable document body.
+
+    Returns a raw body whose first line is the display_name. The prompt
+    wrapping (e.g. embeddinggemma's `title: ... | text: ...`) is applied by
+    `OpenAIEmbedder.embed_batch()` based on the active embedding profile
+    (C1-2 §7). Ingest must not re-wrap here.
     """
     display_name = entry.get("display_name") or ""
     category = entry.get("category") or ""
     description = entry.get("description") or ""
     keywords: list[str] = entry.get("keywords") or []
-    text_body = (
+    return (
         f"{display_name}\n"
         f"類別: {category}\n"
         f"{description}\n"
         f"關鍵字: {', '.join(keywords)}"
     )
-    return f"title: {display_name} | text: {text_body}"
 
 
-def _build_metadata(entry: dict[str, Any]) -> dict[str, Any]:
+def _build_metadata(entry: dict[str, Any], *, has_detail: bool) -> dict[str, Any]:
     return {
         "type": entry["type"],
         "display_name": entry.get("display_name", ""),
         "category": entry.get("category", ""),
         "description": entry.get("description", ""),
+        "has_detail": has_detail,
     }
 
 
@@ -62,6 +81,7 @@ def ingest_discovery(
     reset: bool = False,
     store: ChromaStore | None = None,
     embedder: OpenAIEmbedder | None = None,
+    definitions_dir: str | Path | None = None,
 ) -> int:
     """Upsert all discovery entries. Returns ingested count."""
     catalog_path = Path(catalog_path)
@@ -80,6 +100,10 @@ def ingest_discovery(
             continue
         by_type[node_type] = entry
 
+    detail_slugs = _scan_detail_slugs(
+        Path(definitions_dir) if definitions_dir else _DEFAULT_DEFINITIONS
+    )
+
     settings = get_settings()
     store = store or ChromaStore(settings.chroma_path)
     embedder = embedder or OpenAIEmbedder()
@@ -89,13 +113,20 @@ def ingest_discovery(
 
     total = 0
     items = list(by_type.values())
-    print(f"[ingest_discovery] source={catalog_path.name} unique_types={len(items)}")
+    detail_hits = sum(1 for e in items if _slug_for(e["type"]) in detail_slugs)
+    print(
+        f"[ingest_discovery] source={catalog_path.name} "
+        f"unique_types={len(items)} has_detail={detail_hits}"
+    )
 
     for start in range(0, len(items), _BATCH):
         chunk = items[start : start + _BATCH]
         ids = [e["type"] for e in chunk]
         docs = [_build_document(e) for e in chunk]
-        metas = [_build_metadata(e) for e in chunk]
+        metas = [
+            _build_metadata(e, has_detail=_slug_for(e["type"]) in detail_slugs)
+            for e in chunk
+        ]
         embeddings = embedder.embed_batch(docs)
         store.upsert(COLLECTION_DISCOVERY, ids, docs, metas, embeddings)
 

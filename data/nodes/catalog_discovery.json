@@ -416,11 +416,15 @@
     "type": "n8n-nodes-base.filter",
     "display_name": "Filter",
     "category": "流程控制",
-    "description": "過濾資料項目",
+    "description": "過濾資料項目：保留符合條件的資料、丟棄其餘；條件不成立則整筆被排除。",
     "default_type_version": null,
     "keywords": [
       "Filter",
-      "過濾資料項目"
+      "過濾",
+      "篩選",
+      "條件篩選",
+      "where",
+      "conditional"
     ]
   },
   {
@@ -497,11 +501,21 @@
     "type": "n8n-nodes-base.if",
     "display_name": "If",
     "category": "流程控制",
-    "description": "條件判斷 (true/false)",
+    "description": "條件判斷 (true/false)：根據條件將資料路由到 true 或 false 分支，等同於 if/else。",
     "default_type_version": null,
     "keywords": [
       "If",
       "條件判斷",
+      "條件分支",
+      "如果",
+      "否則",
+      "else",
+      "then",
+      "分支",
+      "判斷",
+      "比較",
+      "conditional",
+      "branch",
       "true",
       "false"
     ]
@@ -777,11 +791,20 @@
     "type": "n8n-nodes-base.switch",
     "display_name": "Switch",
     "category": "流程控制",
-    "description": "多路條件分支",
+    "description": "多路條件分支：依規則把資料路由到不同輸出，等同 switch/case 或多重 if-else。",
     "default_type_version": null,
     "keywords": [
       "Switch",
-      "多路條件分支"
+      "多路條件分支",
+      "條件分支",
+      "路由",
+      "case",
+      "如果",
+      "否則",
+      "else",
+      "multi-branch",
+      "routing",
+      "conditional"
     ]
   },
   {

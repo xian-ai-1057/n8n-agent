@@ -11,7 +11,8 @@
       "type": "fixedCollection",
       "required": true,
       "default": {},
-      "description": "The conditions to evaluate"
+      "description": "The conditions to evaluate",
+      "schema_hint": "expression"
     },
     {
       "name": "combineOperation",

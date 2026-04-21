@@ -29,7 +29,8 @@
       "type": "fixedCollection",
       "required": false,
       "default": {},
-      "description": "The rules to evaluate for routing"
+      "description": "The rules to evaluate for routing",
+      "schema_hint": "expression"
     }
   ],
   "credentials": [],
