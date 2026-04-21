@@ -6,6 +6,9 @@ and constructible with minimal valid inputs".
 
 from __future__ import annotations
 
+import pytest
+from pydantic import ValidationError
+
 from app.models import (
     AgentState,
     BuiltNode,
@@ -40,6 +43,33 @@ def test_catalog_entry_minimal() -> None:
         description="Send messages in Slack.",
     )
     assert e.default_type_version is None
+    assert e.has_detail is False
+
+
+def test_catalog_entry_has_detail_round_trips() -> None:
+    e = NodeCatalogEntry(
+        type="n8n-nodes-base.slack",
+        display_name="Slack",
+        category="Communication",
+        description="Send messages in Slack.",
+        has_detail=True,
+    )
+    assert e.has_detail is True
+
+
+def test_node_parameter_schema_hint_allowlist_accepts_url() -> None:
+    p = NodeParameter(name="url", type="string", required=True, schema_hint="url")
+    assert p.schema_hint == "url"
+
+
+def test_node_parameter_schema_hint_defaults_to_none() -> None:
+    p = NodeParameter(name="foo", type="string")
+    assert p.schema_hint is None
+
+
+def test_node_parameter_schema_hint_rejects_out_of_allowlist() -> None:
+    with pytest.raises(ValidationError):
+        NodeParameter(name="bad", type="string", schema_hint="not_a_real_hint")
 
 
 def test_node_parameter_and_definition() -> None:

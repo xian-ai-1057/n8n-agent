@@ -45,7 +45,8 @@
       "type": "string",
       "required": true,
       "default": "",
-      "description": "The Google Sheets document ID or URL"
+      "description": "The Google Sheets document ID or URL",
+      "schema_hint": "resource_locator"
     },
     {
       "name": "sheetName",

@@ -44,6 +44,7 @@ class Retriever:
                         hit.get("document", "")
                     ),
                     default_type_version=None,
+                    has_detail=bool(meta.get("has_detail", False)),
                 )
             )
         return out

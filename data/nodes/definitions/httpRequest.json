@@ -45,7 +45,8 @@
       "type": "string",
       "required": true,
       "default": "",
-      "description": "The URL to make the request to"
+      "description": "The URL to make the request to",
+      "schema_hint": "url"
     },
     {
       "name": "sendBody",

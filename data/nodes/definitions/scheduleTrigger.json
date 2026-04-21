@@ -11,7 +11,8 @@
       "type": "fixedCollection",
       "required": true,
       "default": {},
-      "description": "Define the schedule using cron expression or interval"
+      "description": "Define the schedule using cron expression or interval",
+      "schema_hint": "cron"
     }
   ],
   "credentials": [],

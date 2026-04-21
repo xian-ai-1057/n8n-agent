@@ -42,6 +42,13 @@ class Settings(BaseSettings):
         default="BAAI/bge-m3",
         description="Embedding model name (must match the backend's served model).",
     )
+    embed_prompt_profile: str = Field(
+        default="auto",
+        description=(
+            "Embedding prompt profile: auto|embeddinggemma|bge|openai|none. "
+            "`auto` infers from embed_model. See C1-2 §7."
+        ),
+    )
 
     chroma_path: str = Field(
         default=str(_PROJECT_ROOT / ".chroma"),

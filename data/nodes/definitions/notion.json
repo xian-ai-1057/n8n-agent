@@ -40,7 +40,8 @@
       "type": "string",
       "required": false,
       "default": "",
-      "description": "The Notion database id"
+      "description": "The Notion database id",
+      "schema_hint": "resource_locator"
     }
   ],
   "credentials": ["notionApi"],

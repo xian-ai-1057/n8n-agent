@@ -31,19 +31,19 @@ _PARAM_SUMMARY_LIMIT = 8
 
 
 def _build_document(defn: NodeDefinition) -> str:
-    """Build the embeddable document string.
+    """Build the embeddable document body.
 
-    Wraps body in embeddinggemma's document prompt (`title: ... | text: ...`).
+    Returns a raw body whose first line is the display_name. Profile-specific
+    prompt wrapping is applied by `OpenAIEmbedder.embed_batch()` (C1-2 §7).
     """
     required_params = [p.name for p in defn.parameters if p.required]
     summary_names = [p.name for p in defn.parameters[:_PARAM_SUMMARY_LIMIT]]
-    body = (
+    return (
         f"{defn.display_name}\n"
         f"{defn.description}\n"
         f"必填參數: {', '.join(required_params)}\n"
         f"參數摘要: {', '.join(summary_names)}"
     )
-    return f"title: {defn.display_name} | text: {body}"
 
 
 def _build_metadata(defn: NodeDefinition, raw: dict[str, Any]) -> dict[str, Any]:

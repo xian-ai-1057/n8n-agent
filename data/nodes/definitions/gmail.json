@@ -67,7 +67,8 @@
       "type": "string",
       "required": true,
       "default": "",
-      "description": "The email address of the recipient"
+      "description": "The email address of the recipient",
+      "schema_hint": "email"
     },
     {
       "name": "subject",

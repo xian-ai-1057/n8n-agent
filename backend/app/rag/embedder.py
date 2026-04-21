@@ -4,6 +4,11 @@ Exposes `embed` / `embed_batch` and raises `EmbedderUnavailable` on connect
 failure, so callers can distinguish "the embeddings endpoint is down" from
 other errors. Targets any OpenAI-compatible endpoint — OpenAI itself, vllm,
 LiteLLM, etc.
+
+Prompt wrapping is routed through embedding-prompt profiles (C1-2 §7): the
+hardcoded embeddinggemma wrapper used to apply uniformly, which actively hurt
+retrieval for BGE/OpenAI models. Callers pass raw text; the profile decides
+whether to add asymmetric prompt shells.
 """
 
 from __future__ import annotations
@@ -12,6 +17,8 @@ import httpx
 from langchain_openai import OpenAIEmbeddings
 
 from app.config import get_settings
+
+VALID_PROFILES = frozenset({"auto", "embeddinggemma", "bge", "openai", "none"})
 
 
 class EmbedderUnavailable(RuntimeError):
@@ -26,12 +33,20 @@ class OpenAIEmbedder:
         model: str | None = None,
         base_url: str | None = None,
         api_key: str | None = None,
+        profile: str | None = None,
         connect_timeout_s: float = 8.0,
     ) -> None:
         settings = get_settings()
         self.model = model or settings.embed_model
         self.base_url = base_url or settings.openai_base_url
         self.api_key = api_key or settings.openai_api_key
+        raw_profile = profile or settings.embed_prompt_profile
+        if raw_profile not in VALID_PROFILES:
+            raise ValueError(
+                f"Unknown EMBED_PROMPT_PROFILE={raw_profile!r}; "
+                f"expected one of {sorted(VALID_PROFILES)}"
+            )
+        self.profile = _resolve_profile(raw_profile, self.model)
         self._connect_timeout_s = connect_timeout_s
         # `OpenAIEmbeddings` owns its own HTTPX client. `check_embedding_ctx_length`
         # must be False for vllm: the client otherwise tries to tokenise with
@@ -62,41 +77,55 @@ class OpenAIEmbedder:
     # ----- embedding API ----------------------------------------------------
 
     def embed(self, text: str) -> list[float]:
-        """Embed a *query* text. Wraps in the embeddinggemma search prompt.
-
-        Leaves the prompt wrapper in place because it's cheap no-op noise for
-        models that don't need it (BGE/E5/OpenAI) and still wins when users
-        point at an embeddinggemma-compatible server.
-        """
+        """Embed a *query*. Profile-dependent prompt wrapping is applied here."""
         try:
-            return self._client.embed_query(_as_query(text))
+            return self._client.embed_query(_wrap_query(text, self.profile))
         except (httpx.HTTPError, OSError) as exc:  # pragma: no cover — network
             raise EmbedderUnavailable(
                 f"Embed call failed at {self.base_url}: {exc}"
             ) from exc
 
     def embed_batch(self, texts: list[str]) -> list[list[float]]:
-        """Embed a batch of *documents*. Does not apply the search prompt.
-
-        Callers should pass doc strings already in the `title: ... | text: ...`
-        shape if they want the embeddinggemma document-side prompt; we leave
-        the document wrapping to the ingest scripts so they can include titles.
-        """
+        """Embed a batch of *documents*. Each text is wrapped per the active profile."""
         if not texts:
             return []
+        wrapped = [_wrap_document(t, self.profile) for t in texts]
         try:
-            return self._client.embed_documents(texts)
+            return self._client.embed_documents(wrapped)
         except (httpx.HTTPError, OSError) as exc:  # pragma: no cover — network
             raise EmbedderUnavailable(
                 f"Embed batch call failed at {self.base_url}: {exc}"
             ) from exc
 
 
-# embeddinggemma was trained with asymmetric prompts for retrieval.
-# The canonical query prompt is "task: search result | query: {q}".
-# See: https://ai.google.dev/gemma/docs/embeddinggemma#prompts
-_QUERY_PROMPT = "task: search result | query: {text}"
+# ---- profile resolution & wrappers (C1-2 §7) -------------------------------
 
 
-def _as_query(text: str) -> str:
-    return _QUERY_PROMPT.format(text=text)
+def _resolve_profile(profile: str, embed_model: str) -> str:
+    """Resolve `auto` to a concrete profile by inspecting the model id."""
+    if profile != "auto":
+        return profile
+    model = embed_model.lower()
+    if "embeddinggemma" in model or "gemma" in model:
+        return "embeddinggemma"
+    if "bge" in model:
+        return "bge"
+    if "text-embedding" in model:
+        return "openai"
+    return "none"
+
+
+def _wrap_query(text: str, profile: str) -> str:
+    if profile == "embeddinggemma":
+        return f"task: search result | query: {text}"
+    return text
+
+
+def _wrap_document(text: str, profile: str) -> str:
+    if profile == "embeddinggemma":
+        # embeddinggemma was trained on "title: ... | text: ..." documents.
+        # Ingest hands us a body whose first line is the node display_name,
+        # so we split on the first newline to recover the title slot.
+        first_line = text.split("\n", 1)[0]
+        return f"title: {first_line} | text: {text}"
+    return text

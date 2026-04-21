@@ -22,6 +22,13 @@ class NodeCatalogEntry(BaseModel):
         default=None,
         description="Latest known typeVersion; may be filled during ingest.",
     )
+    has_detail: bool = Field(
+        default=False,
+        description=(
+            "True when a definitions/{slug}.json file exists for this type. "
+            "Synthesized by ingest (R2-2 §6); not present in xlsx source."
+        ),
+    )
 
 
 class NodeParameter(BaseModel):
@@ -45,6 +52,23 @@ class NodeParameter(BaseModel):
     default: Any = None
     description: str | None = None
     options: list[dict[str, Any]] | None = None
+    schema_hint: Literal[
+        "url",
+        "cron",
+        "node_id",
+        "expression",
+        "credential_ref",
+        "email",
+        "datetime",
+        "secret",
+        "resource_locator",
+    ] | None = Field(
+        default=None,
+        description=(
+            "Controlled vocabulary semantic hint beyond structural type. "
+            "Values outside the allowlist raise ValidationError. See R2-2 §3."
+        ),
+    )
 
 
 class NodeDefinition(BaseModel):
