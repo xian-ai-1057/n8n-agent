@@ -275,6 +275,7 @@ class N8nClient:
         json: Any = None,
         params: dict[str, Any] | None = None,
     ) -> Any:
+        logger.info("n8n %s %s", method, path)
         try:
             response = self._client.request(method, path, json=json, params=params)
         except httpx.TimeoutException as exc:
@@ -296,6 +297,7 @@ class N8nClient:
             payload = response.text
 
         detail = _extract_message(payload) or response.text[:500]
+        logger.warning("n8n %s %s -> %d: %s", method, path, status, detail[:200])
 
         if status == 400:
             raise N8nBadRequestError(

@@ -95,7 +95,7 @@ class _FilesystemStubRetriever:
     def search_discovery(self, query: str, k: int = 8) -> list[NodeCatalogEntry]:
         tokens = [t for t in query.lower().split() if t]
         if not tokens or not self._entries:
-            return self._entries[:k]
+            return []
 
         scored: list[tuple[int, int, NodeCatalogEntry]] = []
         for idx, (entry, hay) in enumerate(zip(self._entries, self._entry_haystacks)):
@@ -103,19 +103,7 @@ class _FilesystemStubRetriever:
             if score:
                 scored.append((-score, idx, entry))
         scored.sort()
-
-        hits = [e for _, _, e in scored[:k]]
-        if len(hits) < k:
-            # pad with catalog head so planner always has at least a few
-            seen = {e.type for e in hits}
-            for e in self._entries:
-                if len(hits) >= k:
-                    break
-                if e.type in seen:
-                    continue
-                hits.append(e)
-                seen.add(e.type)
-        return hits
+        return [e for _, _, e in scored[:k]]
 
     def get_detail(self, node_type: str) -> NodeDefinition | None:
         return self._definitions.get(node_type)

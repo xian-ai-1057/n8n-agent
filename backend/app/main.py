@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .api.routes import router
 from .config import get_settings
+from .request_context import RequestIdFilter
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +32,9 @@ def create_app() -> FastAPI:
 
     logging.basicConfig(
         level=getattr(logging, settings.log_level.upper(), logging.INFO),
-        format="%(asctime)s %(levelname)s %(name)s - %(message)s",
+        format="%(asctime)s %(levelname)s [%(rid)s] %(name)s:%(lineno)d - %(message)s",
     )
+    _install_rid_filter()
 
     app = FastAPI(
         title="n8n Workflow Builder",
@@ -51,13 +53,26 @@ def create_app() -> FastAPI:
     app.include_router(router)
 
     logger.info(
-        "backend up: n8n=%s openai=%s chroma=%s deploy_enabled=%s",
+        "backend up: n8n=%s openai=%s llm=%s embed=%s chroma=%s deploy_enabled=%s",
         settings.n8n_url,
         settings.openai_base_url,
+        settings.llm_model,
+        settings.embed_model,
         settings.chroma_path,
         bool(settings.n8n_api_key),
     )
     return app
+
+
+def _install_rid_filter() -> None:
+    """Attach RequestIdFilter to root + uvicorn handlers so every log has %(rid)s."""
+    f = RequestIdFilter()
+    root = logging.getLogger()
+    for h in root.handlers:
+        h.addFilter(f)
+    for name in ("uvicorn", "uvicorn.access", "uvicorn.error"):
+        for h in logging.getLogger(name).handlers:
+            h.addFilter(f)
 
 
 app = create_app()

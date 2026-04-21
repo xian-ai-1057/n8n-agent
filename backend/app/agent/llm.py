@@ -7,9 +7,9 @@ Targets any OpenAI-compatible endpoint — OpenAI itself, vllm's
 
 from __future__ import annotations
 
-import threading
 from typing import Any
 
+import httpx
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
 
@@ -23,13 +23,18 @@ class LLMTimeoutError(TimeoutError):
     """Raised when a structured LLM call exceeds its timeout budget."""
 
 
-def _base_chat(*, temperature: float = DEFAULT_TEMPERATURE) -> ChatOpenAI:
+def _base_chat(
+    *,
+    temperature: float = DEFAULT_TEMPERATURE,
+    timeout: float = DEFAULT_INVOKE_TIMEOUT_SEC,
+) -> ChatOpenAI:
     settings = get_settings()
     return ChatOpenAI(
         model=settings.llm_model,
         base_url=settings.openai_base_url,
         api_key=settings.openai_api_key,
         temperature=temperature,
+        timeout=timeout,
     )
 
 
@@ -37,6 +42,7 @@ def get_llm(
     schema: type[BaseModel],
     *,
     temperature: float = DEFAULT_TEMPERATURE,
+    timeout: float = DEFAULT_INVOKE_TIMEOUT_SEC,
 ) -> Any:
     """Return a ChatOpenAI bound to structured output for `schema`.
 
@@ -46,13 +52,17 @@ def get_llm(
     model supports tool calling, but all of them accept JSON-schema guided
     decoding.
     """
-    chat = _base_chat(temperature=temperature)
+    chat = _base_chat(temperature=temperature, timeout=timeout)
     return chat.with_structured_output(schema, method="json_schema")
 
 
-def get_unstructured_llm(*, temperature: float = DEFAULT_TEMPERATURE) -> ChatOpenAI:
+def get_unstructured_llm(
+    *,
+    temperature: float = DEFAULT_TEMPERATURE,
+    timeout: float = DEFAULT_INVOKE_TIMEOUT_SEC,
+) -> ChatOpenAI:
     """Plain ChatOpenAI for fallbacks / free-form completions."""
-    return _base_chat(temperature=temperature)
+    return _base_chat(temperature=temperature, timeout=timeout)
 
 
 def invoke_with_timeout(
@@ -61,36 +71,21 @@ def invoke_with_timeout(
     *,
     timeout: float = DEFAULT_INVOKE_TIMEOUT_SEC,
 ) -> Any:
-    """Invoke a (structured) LLM with a hard wall-clock timeout.
+    """Invoke a (structured) LLM, translating HTTP-level timeouts.
 
-    Why hand-rolled instead of `concurrent.futures.ThreadPoolExecutor`:
-    ThreadPoolExecutor's workers are non-daemon, and interpreter shutdown
-    hooks wait for them — a stalled `ChatOpenAI.invoke` would then block
-    `python` from exiting. We use a raw daemon `threading.Thread` so:
-      1. Result via shared container + Event.
-      2. If the worker overruns, we give up on it — the daemon thread dies
-         when the process exits. Socket cleanup is delegated to the OS.
-    Caller must surface the `LLMTimeoutError` as a recoverable failure
-    (e.g. empty nodes → validator error) so the graph's retry path runs.
+    Timeout is enforced at the HTTP client layer (configured on the
+    ``ChatOpenAI`` instance), so a stalled request is actually cancelled at
+    the socket — no background threads accumulate. This function just
+    normalises the timeout exception type so callers can ``except
+    LLMTimeoutError`` and trigger the graph's retry path.
+
+    The ``timeout`` kwarg is retained for API compatibility with callers, but
+    the effective budget is the one baked into the LLM client.
     """
-    container: dict[str, Any] = {}
-    done = threading.Event()
-
-    def _target() -> None:
-        try:
-            container["result"] = llm.invoke(prompt)
-        except BaseException as exc:  # noqa: BLE001
-            container["error"] = exc
-        finally:
-            done.set()
-
-    worker = threading.Thread(
-        target=_target, name="llm-invoke", daemon=True
-    )
-    worker.start()
-    finished = done.wait(timeout=timeout)
-    if not finished:
-        raise LLMTimeoutError(f"LLM invoke exceeded {timeout:.0f}s")
-    if "error" in container:
-        raise container["error"]
-    return container["result"]
+    del timeout  # enforced by the underlying ChatOpenAI client
+    try:
+        return llm.invoke(prompt)
+    except httpx.TimeoutException as exc:
+        raise LLMTimeoutError(f"LLM invoke timed out: {exc}") from exc
+    except TimeoutError as exc:
+        raise LLMTimeoutError(f"LLM invoke timed out: {exc}") from exc

@@ -99,8 +99,14 @@ def plan_step(state: AgentState, retriever: RetrieverProtocol) -> dict[str, Any]
     Returns a state delta dict LangGraph will merge.
     """
     t0 = time.monotonic()
+    logger.info("planner start msg=%r", state.user_message[:80])
     hits = retriever.search_discovery(state.user_message, DISCOVERY_K)
     hits = _augment_with_core_controls(hits, retriever)
+    logger.info(
+        "retriever top_k=%d types=%s",
+        len(hits),
+        [h.type for h in hits],
+    )
     hit_text = format_discovery_hits(hits)
     prompt = render_prompt(
         "planner",
