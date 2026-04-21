@@ -1,0 +1,28 @@
+{
+  "type": "@n8n/n8n-nodes-langchain.agent",
+  "display_name": "AI Agent",
+  "description": "An autonomous AI agent that can reason, use tools, and complete multi-step tasks.",
+  "category": "AI",
+  "type_version": 3.1,
+  "parameters": [
+    {
+      "name": "options",
+      "display_name": "Options",
+      "type": "collection",
+      "required": false,
+      "default": {},
+      "description": "Agent options including system message and behavior settings"
+    }
+  ],
+  "credentials": [],
+  "inputs": [
+    "main",
+    "ai_languageModel",
+    "ai_tool",
+    "ai_memory"
+  ],
+  "outputs": [
+    "main"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

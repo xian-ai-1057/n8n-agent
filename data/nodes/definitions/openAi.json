@@ -1,0 +1,47 @@
+{
+  "type": "@n8n/n8n-nodes-langchain.openAi",
+  "display_name": "OpenAI",
+  "description": "Call OpenAI models for chat completion, embeddings, images and audio.",
+  "category": "AI",
+  "type_version": 1.8,
+  "parameters": [
+    {
+      "name": "resource",
+      "display_name": "Resource",
+      "type": "options",
+      "required": true,
+      "default": "text",
+      "options": [
+        {"name": "Assistant", "value": "assistant"},
+        {"name": "Audio", "value": "audio"},
+        {"name": "File", "value": "file"},
+        {"name": "Image", "value": "image"},
+        {"name": "Text", "value": "text"}
+      ]
+    },
+    {
+      "name": "operation",
+      "display_name": "Operation",
+      "type": "options",
+      "required": true,
+      "default": "message",
+      "options": [
+        {"name": "Message a Model", "value": "message"},
+        {"name": "Classify Text", "value": "classify"},
+        {"name": "Generate an Image", "value": "generate"}
+      ]
+    },
+    {
+      "name": "modelId",
+      "display_name": "Model",
+      "type": "string",
+      "required": true,
+      "default": "gpt-4o-mini",
+      "description": "The OpenAI model id"
+    }
+  ],
+  "credentials": ["openAiApi"],
+  "inputs": ["main"],
+  "outputs": ["main"],
+  "_source": "n8n-docs 1.123"
+}

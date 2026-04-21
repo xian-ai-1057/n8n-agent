@@ -1,0 +1,77 @@
+{
+  "type": "n8n-nodes-base.postgres",
+  "display_name": "Postgres",
+  "description": "Execute SQL queries on a PostgreSQL database. Supports select, insert, update, delete, and raw SQL.",
+  "category": "Data",
+  "type_version": 2.5,
+  "parameters": [
+    {
+      "name": "operation",
+      "display_name": "Operation",
+      "type": "options",
+      "required": true,
+      "default": "executeQuery",
+      "description": "The operation to perform",
+      "options": [
+        {
+          "name": "Delete",
+          "value": "deleteTable"
+        },
+        {
+          "name": "Execute Query",
+          "value": "executeQuery"
+        },
+        {
+          "name": "Insert",
+          "value": "insert"
+        },
+        {
+          "name": "Insert or Update",
+          "value": "upsert"
+        },
+        {
+          "name": "Select",
+          "value": "select"
+        },
+        {
+          "name": "Update",
+          "value": "update"
+        }
+      ]
+    },
+    {
+      "name": "query",
+      "display_name": "Query",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "description": "The SQL query to execute"
+    },
+    {
+      "name": "schema",
+      "display_name": "Schema",
+      "type": "string",
+      "required": false,
+      "default": "public",
+      "description": "The schema of the table"
+    },
+    {
+      "name": "table",
+      "display_name": "Table",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "description": "The table name to operate on"
+    }
+  ],
+  "credentials": [
+    "postgres"
+  ],
+  "inputs": [
+    "main"
+  ],
+  "outputs": [
+    "main"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

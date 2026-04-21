@@ -1,0 +1,39 @@
+{
+  "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+  "display_name": "Chat Trigger",
+  "description": "Starts the workflow when a chat message is received. Provides a built-in chat interface for testing.",
+  "category": "AI",
+  "type_version": 1.4,
+  "parameters": [
+    {
+      "name": "public",
+      "display_name": "Make Chat Publicly Available",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "Whether the chat widget is publicly accessible"
+    },
+    {
+      "name": "initialMessages",
+      "display_name": "Initial Messages",
+      "type": "string",
+      "required": false,
+      "default": "Hi there! How can I help you today?",
+      "description": "Initial greeting message shown in the chat"
+    },
+    {
+      "name": "options",
+      "display_name": "Options",
+      "type": "collection",
+      "required": false,
+      "default": {},
+      "description": "Additional options for the chat trigger"
+    }
+  ],
+  "credentials": [],
+  "inputs": [],
+  "outputs": [
+    "main"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

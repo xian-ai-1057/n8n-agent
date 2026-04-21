@@ -1,0 +1,46 @@
+{
+  "type": "n8n-nodes-base.switch",
+  "display_name": "Switch",
+  "description": "Routes items to different outputs based on matching rules. Supports multiple output branches.",
+  "category": "Core",
+  "type_version": 3.2,
+  "parameters": [
+    {
+      "name": "mode",
+      "display_name": "Mode",
+      "type": "options",
+      "required": true,
+      "default": "rules",
+      "description": "How to route the items",
+      "options": [
+        {
+          "name": "Rules",
+          "value": "rules"
+        },
+        {
+          "name": "Expression",
+          "value": "expression"
+        }
+      ]
+    },
+    {
+      "name": "rules",
+      "display_name": "Routing Rules",
+      "type": "fixedCollection",
+      "required": false,
+      "default": {},
+      "description": "The rules to evaluate for routing"
+    }
+  ],
+  "credentials": [],
+  "inputs": [
+    "main"
+  ],
+  "outputs": [
+    "main",
+    "main",
+    "main",
+    "main"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

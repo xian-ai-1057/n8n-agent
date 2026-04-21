@@ -1,0 +1,66 @@
+{
+  "type": "n8n-nodes-base.merge",
+  "display_name": "Merge",
+  "description": "Combines data from two input branches into one. Supports append, merge by key, and SQL-like join modes.",
+  "category": "Core",
+  "type_version": 3.2,
+  "parameters": [
+    {
+      "name": "mode",
+      "display_name": "Mode",
+      "type": "options",
+      "required": true,
+      "default": "append",
+      "description": "How to combine the data",
+      "options": [
+        {
+          "name": "Append",
+          "value": "append"
+        },
+        {
+          "name": "Combine",
+          "value": "combine"
+        },
+        {
+          "name": "Choose Branch",
+          "value": "chooseBranch"
+        }
+      ]
+    },
+    {
+      "name": "joinMode",
+      "display_name": "Join Mode",
+      "type": "options",
+      "required": false,
+      "default": "enrichInput1",
+      "description": "How to join the two inputs",
+      "options": [
+        {
+          "name": "Enrich Input 1",
+          "value": "enrichInput1"
+        },
+        {
+          "name": "Enrich Input 2",
+          "value": "enrichInput2"
+        },
+        {
+          "name": "Keep Matches",
+          "value": "keepMatches"
+        },
+        {
+          "name": "Keep Non-Matches",
+          "value": "keepNonMatches"
+        }
+      ]
+    }
+  ],
+  "credentials": [],
+  "inputs": [
+    "main",
+    "main"
+  ],
+  "outputs": [
+    "main"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

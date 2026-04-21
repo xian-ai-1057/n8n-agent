@@ -1,0 +1,44 @@
+{
+  "type": "n8n-nodes-base.executeWorkflow",
+  "display_name": "Execute Sub-workflow",
+  "description": "Run another workflow and optionally pass items as input.",
+  "category": "Core",
+  "type_version": 1.2,
+  "parameters": [
+    {
+      "name": "source",
+      "display_name": "Source",
+      "type": "options",
+      "required": true,
+      "default": "database",
+      "options": [
+        {"name": "Workflow from List", "value": "database"},
+        {"name": "By ID", "value": "id"},
+        {"name": "From URL", "value": "url"}
+      ]
+    },
+    {
+      "name": "workflowId",
+      "display_name": "Workflow ID",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "description": "Id of the sub-workflow to execute"
+    },
+    {
+      "name": "mode",
+      "display_name": "Mode",
+      "type": "options",
+      "required": false,
+      "default": "each",
+      "options": [
+        {"name": "Run once for each item", "value": "each"},
+        {"name": "Run once with all items", "value": "once"}
+      ]
+    }
+  ],
+  "credentials": [],
+  "inputs": ["main"],
+  "outputs": ["main"],
+  "_source": "n8n-docs 1.123"
+}

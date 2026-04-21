@@ -1,0 +1,37 @@
+{
+  "type": "n8n-nodes-base.formTrigger",
+  "display_name": "On form submission",
+  "description": "Trigger the workflow when a user submits an n8n-hosted form.",
+  "category": "Trigger",
+  "type_version": 2.2,
+  "parameters": [
+    {
+      "name": "formTitle",
+      "display_name": "Form Title",
+      "type": "string",
+      "required": true,
+      "default": "",
+      "description": "Title shown at the top of the form"
+    },
+    {
+      "name": "formDescription",
+      "display_name": "Form Description",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "description": "Optional description below the title"
+    },
+    {
+      "name": "formFields",
+      "display_name": "Form Fields",
+      "type": "fixedCollection",
+      "required": true,
+      "default": {},
+      "description": "Field definitions for the form"
+    }
+  ],
+  "credentials": [],
+  "inputs": [],
+  "outputs": ["main"],
+  "_source": "n8n-docs 1.123"
+}

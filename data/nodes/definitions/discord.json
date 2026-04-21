@@ -1,0 +1,79 @@
+{
+  "type": "n8n-nodes-base.discord",
+  "display_name": "Discord",
+  "description": "Send messages and manage interactions in Discord servers using webhooks or bot API.",
+  "category": "Communication",
+  "type_version": 2.1,
+  "parameters": [
+    {
+      "name": "resource",
+      "display_name": "Resource",
+      "type": "options",
+      "required": true,
+      "default": "message",
+      "description": "The resource to operate on",
+      "options": [
+        {
+          "name": "Channel",
+          "value": "channel"
+        },
+        {
+          "name": "Message",
+          "value": "message"
+        },
+        {
+          "name": "Member",
+          "value": "member"
+        }
+      ]
+    },
+    {
+      "name": "operation",
+      "display_name": "Operation",
+      "type": "options",
+      "required": true,
+      "default": "send",
+      "description": "The operation to perform",
+      "options": [
+        {
+          "name": "Send",
+          "value": "send"
+        },
+        {
+          "name": "Delete",
+          "value": "delete"
+        },
+        {
+          "name": "Get All",
+          "value": "getAll"
+        }
+      ]
+    },
+    {
+      "name": "channelId",
+      "display_name": "Channel ID",
+      "type": "string",
+      "required": true,
+      "default": "",
+      "description": "The Discord channel ID"
+    },
+    {
+      "name": "content",
+      "display_name": "Content",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "description": "The message content to send"
+    }
+  ],
+  "credentials": [
+    "discordBotApi"
+  ],
+  "inputs": [
+    "main"
+  ],
+  "outputs": [
+    "main"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

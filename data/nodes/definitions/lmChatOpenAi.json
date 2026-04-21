@@ -1,0 +1,63 @@
+{
+  "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+  "display_name": "OpenAI Chat Model",
+  "description": "Use OpenAI chat models like GPT-4o for text generation, summarization, classification, and reasoning tasks.",
+  "category": "AI",
+  "type_version": 1.2,
+  "parameters": [
+    {
+      "name": "model",
+      "display_name": "Model",
+      "type": "options",
+      "required": true,
+      "default": "gpt-4o-mini",
+      "description": "The OpenAI model to use",
+      "options": [
+        {
+          "name": "GPT-4o",
+          "value": "gpt-4o"
+        },
+        {
+          "name": "GPT-4o Mini",
+          "value": "gpt-4o-mini"
+        },
+        {
+          "name": "GPT-4 Turbo",
+          "value": "gpt-4-turbo"
+        },
+        {
+          "name": "o1",
+          "value": "o1"
+        },
+        {
+          "name": "o1 Mini",
+          "value": "o1-mini"
+        }
+      ]
+    },
+    {
+      "name": "temperature",
+      "display_name": "Temperature",
+      "type": "number",
+      "required": false,
+      "default": 0.7,
+      "description": "Controls randomness of the output"
+    },
+    {
+      "name": "maxTokens",
+      "display_name": "Max Tokens",
+      "type": "number",
+      "required": false,
+      "default": 4096,
+      "description": "Maximum number of tokens to generate"
+    }
+  ],
+  "credentials": [
+    "openAiApi"
+  ],
+  "inputs": [],
+  "outputs": [
+    "ai_languageModel"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

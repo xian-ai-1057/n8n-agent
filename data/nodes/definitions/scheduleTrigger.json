@@ -1,0 +1,23 @@
+{
+  "type": "n8n-nodes-base.scheduleTrigger",
+  "display_name": "Schedule Trigger",
+  "description": "Triggers the workflow on a schedule, using cron expressions or simple intervals.",
+  "category": "Core",
+  "type_version": 1.2,
+  "parameters": [
+    {
+      "name": "rule",
+      "display_name": "Trigger Rules",
+      "type": "fixedCollection",
+      "required": true,
+      "default": {},
+      "description": "Define the schedule using cron expression or interval"
+    }
+  ],
+  "credentials": [],
+  "inputs": [],
+  "outputs": [
+    "main"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

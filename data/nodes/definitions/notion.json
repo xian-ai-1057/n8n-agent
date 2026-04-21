@@ -1,0 +1,50 @@
+{
+  "type": "n8n-nodes-base.notion",
+  "display_name": "Notion",
+  "description": "Create, read, update and query Notion databases, pages and blocks.",
+  "category": "Productivity",
+  "type_version": 2.2,
+  "parameters": [
+    {
+      "name": "resource",
+      "display_name": "Resource",
+      "type": "options",
+      "required": true,
+      "default": "page",
+      "description": "Resource to operate on",
+      "options": [
+        {"name": "Block", "value": "block"},
+        {"name": "Database", "value": "database"},
+        {"name": "Database Page", "value": "databasePage"},
+        {"name": "Page", "value": "page"},
+        {"name": "User", "value": "user"}
+      ]
+    },
+    {
+      "name": "operation",
+      "display_name": "Operation",
+      "type": "options",
+      "required": true,
+      "default": "create",
+      "description": "Operation to perform",
+      "options": [
+        {"name": "Create", "value": "create"},
+        {"name": "Get", "value": "get"},
+        {"name": "Get Many", "value": "getAll"},
+        {"name": "Update", "value": "update"}
+      ]
+    },
+    {
+      "name": "databaseId",
+      "display_name": "Database",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "description": "The Notion database id"
+    }
+  ],
+  "credentials": ["notionApi"],
+  "inputs": ["main"],
+  "outputs": ["main"],
+  "_source": "n8n-docs 1.123"
+}

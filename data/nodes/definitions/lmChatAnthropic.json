@@ -1,0 +1,55 @@
+{
+  "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+  "display_name": "Anthropic Chat Model",
+  "description": "Use Anthropic Claude models for text generation, analysis, and complex reasoning tasks.",
+  "category": "AI",
+  "type_version": 1.3,
+  "parameters": [
+    {
+      "name": "model",
+      "display_name": "Model",
+      "type": "options",
+      "required": true,
+      "default": "claude-sonnet-4-20250514",
+      "description": "The Anthropic model to use",
+      "options": [
+        {
+          "name": "Claude Opus 4",
+          "value": "claude-opus-4-20250514"
+        },
+        {
+          "name": "Claude Sonnet 4",
+          "value": "claude-sonnet-4-20250514"
+        },
+        {
+          "name": "Claude 3.5 Haiku",
+          "value": "claude-3-5-haiku-20241022"
+        }
+      ]
+    },
+    {
+      "name": "temperature",
+      "display_name": "Temperature",
+      "type": "number",
+      "required": false,
+      "default": 0.7,
+      "description": "Controls randomness of the output"
+    },
+    {
+      "name": "maxTokensToSample",
+      "display_name": "Max Tokens",
+      "type": "number",
+      "required": false,
+      "default": 4096,
+      "description": "Maximum number of tokens to generate"
+    }
+  ],
+  "credentials": [
+    "anthropicApi"
+  ],
+  "inputs": [],
+  "outputs": [
+    "ai_languageModel"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

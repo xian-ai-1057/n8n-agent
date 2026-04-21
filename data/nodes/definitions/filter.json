@@ -1,0 +1,43 @@
+{
+  "type": "n8n-nodes-base.filter",
+  "display_name": "Filter",
+  "description": "Filters items based on conditions. Only items matching the filter criteria pass through.",
+  "category": "Core",
+  "type_version": 2.2,
+  "parameters": [
+    {
+      "name": "conditions",
+      "display_name": "Conditions",
+      "type": "fixedCollection",
+      "required": true,
+      "default": {},
+      "description": "The conditions to filter by"
+    },
+    {
+      "name": "combineOperation",
+      "display_name": "Combine",
+      "type": "options",
+      "required": false,
+      "default": "all",
+      "description": "How to combine multiple conditions",
+      "options": [
+        {
+          "name": "AND",
+          "value": "all"
+        },
+        {
+          "name": "OR",
+          "value": "any"
+        }
+      ]
+    }
+  ],
+  "credentials": [],
+  "inputs": [
+    "main"
+  ],
+  "outputs": [
+    "main"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

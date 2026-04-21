@@ -1,0 +1,75 @@
+{
+  "type": "n8n-nodes-base.httpRequest",
+  "display_name": "HTTP Request",
+  "description": "Makes HTTP requests to any URL. Supports GET, POST, PUT, PATCH, DELETE with headers, body, and authentication.",
+  "category": "Core",
+  "type_version": 4.6,
+  "parameters": [
+    {
+      "name": "method",
+      "display_name": "Method",
+      "type": "options",
+      "required": true,
+      "default": "GET",
+      "description": "The HTTP method",
+      "options": [
+        {
+          "name": "DELETE",
+          "value": "DELETE"
+        },
+        {
+          "name": "GET",
+          "value": "GET"
+        },
+        {
+          "name": "HEAD",
+          "value": "HEAD"
+        },
+        {
+          "name": "PATCH",
+          "value": "PATCH"
+        },
+        {
+          "name": "POST",
+          "value": "POST"
+        },
+        {
+          "name": "PUT",
+          "value": "PUT"
+        }
+      ]
+    },
+    {
+      "name": "url",
+      "display_name": "URL",
+      "type": "string",
+      "required": true,
+      "default": "",
+      "description": "The URL to make the request to"
+    },
+    {
+      "name": "sendBody",
+      "display_name": "Send Body",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "Whether to send a request body"
+    },
+    {
+      "name": "sendHeaders",
+      "display_name": "Send Headers",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "Whether to send custom headers"
+    }
+  ],
+  "credentials": [],
+  "inputs": [
+    "main"
+  ],
+  "outputs": [
+    "main"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

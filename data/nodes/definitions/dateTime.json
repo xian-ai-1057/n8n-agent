@@ -1,0 +1,42 @@
+{
+  "type": "n8n-nodes-base.dateTime",
+  "display_name": "Date & Time",
+  "description": "Parse, format and perform arithmetic on dates and times.",
+  "category": "Core",
+  "type_version": 2,
+  "parameters": [
+    {
+      "name": "action",
+      "display_name": "Action",
+      "type": "options",
+      "required": true,
+      "default": "format",
+      "options": [
+        {"name": "Format a Date", "value": "format"},
+        {"name": "Add to a Date", "value": "add"},
+        {"name": "Subtract from a Date", "value": "subtract"},
+        {"name": "Get Current Date", "value": "getCurrentDate"}
+      ]
+    },
+    {
+      "name": "value",
+      "display_name": "Value",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "description": "The date/time expression or ISO string to operate on"
+    },
+    {
+      "name": "format",
+      "display_name": "Format",
+      "type": "string",
+      "required": false,
+      "default": "yyyy-MM-dd HH:mm:ss",
+      "description": "Target output format (Luxon tokens)"
+    }
+  ],
+  "credentials": [],
+  "inputs": ["main"],
+  "outputs": ["main"],
+  "_source": "n8n-docs 1.123"
+}

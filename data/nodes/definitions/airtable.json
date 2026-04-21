@@ -1,0 +1,55 @@
+{
+  "type": "n8n-nodes-base.airtable",
+  "display_name": "Airtable",
+  "description": "Read, create, update and delete rows in an Airtable base.",
+  "category": "Productivity",
+  "type_version": 2.1,
+  "parameters": [
+    {
+      "name": "resource",
+      "display_name": "Resource",
+      "type": "options",
+      "required": true,
+      "default": "record",
+      "options": [
+        {"name": "Record", "value": "record"},
+        {"name": "Base", "value": "base"}
+      ]
+    },
+    {
+      "name": "operation",
+      "display_name": "Operation",
+      "type": "options",
+      "required": true,
+      "default": "create",
+      "options": [
+        {"name": "Append", "value": "append"},
+        {"name": "Create", "value": "create"},
+        {"name": "Delete", "value": "delete"},
+        {"name": "Get", "value": "get"},
+        {"name": "List", "value": "list"},
+        {"name": "Update", "value": "update"}
+      ]
+    },
+    {
+      "name": "base",
+      "display_name": "Base",
+      "type": "string",
+      "required": true,
+      "default": "",
+      "description": "The Airtable base id"
+    },
+    {
+      "name": "table",
+      "display_name": "Table",
+      "type": "string",
+      "required": true,
+      "default": "",
+      "description": "The Airtable table name or id"
+    }
+  ],
+  "credentials": ["airtableTokenApi"],
+  "inputs": ["main"],
+  "outputs": ["main"],
+  "_source": "n8n-docs 1.123"
+}

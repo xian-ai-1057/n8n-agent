@@ -1,0 +1,46 @@
+{
+  "type": "n8n-nodes-base.crypto",
+  "display_name": "Crypto",
+  "description": "Compute hashes, HMACs, generate random values and sign/verify data.",
+  "category": "Core",
+  "type_version": 1,
+  "parameters": [
+    {
+      "name": "action",
+      "display_name": "Action",
+      "type": "options",
+      "required": true,
+      "default": "hash",
+      "options": [
+        {"name": "Generate", "value": "generate"},
+        {"name": "Hash", "value": "hash"},
+        {"name": "Hmac", "value": "hmac"},
+        {"name": "Sign", "value": "sign"}
+      ]
+    },
+    {
+      "name": "type",
+      "display_name": "Algorithm",
+      "type": "options",
+      "required": true,
+      "default": "SHA256",
+      "options": [
+        {"name": "MD5", "value": "MD5"},
+        {"name": "SHA256", "value": "SHA256"},
+        {"name": "SHA512", "value": "SHA512"}
+      ]
+    },
+    {
+      "name": "value",
+      "display_name": "Value",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "description": "The input value to hash/hmac/sign"
+    }
+  ],
+  "credentials": [],
+  "inputs": ["main"],
+  "outputs": ["main"],
+  "_source": "n8n-docs 1.123"
+}

@@ -1,0 +1,69 @@
+{
+  "type": "n8n-nodes-base.googleSheets",
+  "display_name": "Google Sheets",
+  "description": "Read, create, update, and delete data in Google Sheets spreadsheets.",
+  "category": "Data",
+  "type_version": 4.5,
+  "parameters": [
+    {
+      "name": "operation",
+      "display_name": "Operation",
+      "type": "options",
+      "required": true,
+      "default": "read",
+      "description": "The operation to perform",
+      "options": [
+        {
+          "name": "Append Row",
+          "value": "append"
+        },
+        {
+          "name": "Clear Sheet",
+          "value": "clear"
+        },
+        {
+          "name": "Create Sheet",
+          "value": "create"
+        },
+        {
+          "name": "Delete Rows",
+          "value": "delete"
+        },
+        {
+          "name": "Read Rows",
+          "value": "read"
+        },
+        {
+          "name": "Update Row",
+          "value": "update"
+        }
+      ]
+    },
+    {
+      "name": "documentId",
+      "display_name": "Document",
+      "type": "string",
+      "required": true,
+      "default": "",
+      "description": "The Google Sheets document ID or URL"
+    },
+    {
+      "name": "sheetName",
+      "display_name": "Sheet",
+      "type": "string",
+      "required": true,
+      "default": "Sheet1",
+      "description": "The name of the sheet within the spreadsheet"
+    }
+  ],
+  "credentials": [
+    "googleSheetsOAuth2Api"
+  ],
+  "inputs": [
+    "main"
+  ],
+  "outputs": [
+    "main"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

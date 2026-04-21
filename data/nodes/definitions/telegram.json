@@ -1,0 +1,91 @@
+{
+  "type": "n8n-nodes-base.telegram",
+  "display_name": "Telegram",
+  "description": "Send messages, photos, and documents via Telegram Bot API. Manage chats and handle updates.",
+  "category": "Communication",
+  "type_version": 1.2,
+  "parameters": [
+    {
+      "name": "resource",
+      "display_name": "Resource",
+      "type": "options",
+      "required": true,
+      "default": "message",
+      "description": "The resource to operate on",
+      "options": [
+        {
+          "name": "Chat",
+          "value": "chat"
+        },
+        {
+          "name": "Callback",
+          "value": "callback"
+        },
+        {
+          "name": "File",
+          "value": "file"
+        },
+        {
+          "name": "Message",
+          "value": "message"
+        }
+      ]
+    },
+    {
+      "name": "operation",
+      "display_name": "Operation",
+      "type": "options",
+      "required": true,
+      "default": "sendMessage",
+      "description": "The operation to perform",
+      "options": [
+        {
+          "name": "Send Message",
+          "value": "sendMessage"
+        },
+        {
+          "name": "Edit Message",
+          "value": "editMessage"
+        },
+        {
+          "name": "Delete Message",
+          "value": "deleteMessage"
+        },
+        {
+          "name": "Send Photo",
+          "value": "sendPhoto"
+        },
+        {
+          "name": "Send Document",
+          "value": "sendDocument"
+        }
+      ]
+    },
+    {
+      "name": "chatId",
+      "display_name": "Chat ID",
+      "type": "string",
+      "required": true,
+      "default": "",
+      "description": "The Telegram chat ID to send the message to"
+    },
+    {
+      "name": "text",
+      "display_name": "Text",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "description": "The message text to send"
+    }
+  ],
+  "credentials": [
+    "telegramApi"
+  ],
+  "inputs": [
+    "main"
+  ],
+  "outputs": [
+    "main"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

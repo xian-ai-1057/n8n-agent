@@ -1,0 +1,51 @@
+{
+  "type": "n8n-nodes-base.set",
+  "display_name": "Edit Fields (Set)",
+  "description": "Modify, add, or remove fields from items. Rename keys, set values, and restructure data.",
+  "category": "Core",
+  "type_version": 3.4,
+  "parameters": [
+    {
+      "name": "mode",
+      "display_name": "Mode",
+      "type": "options",
+      "required": true,
+      "default": "manual",
+      "description": "How to set the fields",
+      "options": [
+        {
+          "name": "Manual Mapping",
+          "value": "manual"
+        },
+        {
+          "name": "JSON",
+          "value": "raw"
+        }
+      ]
+    },
+    {
+      "name": "assignments",
+      "display_name": "Fields to Set",
+      "type": "fixedCollection",
+      "required": false,
+      "default": {},
+      "description": "The field assignments"
+    },
+    {
+      "name": "includeOtherFields",
+      "display_name": "Include Other Input Fields",
+      "type": "boolean",
+      "required": false,
+      "default": true,
+      "description": "Whether to include fields not explicitly set"
+    }
+  ],
+  "credentials": [],
+  "inputs": [
+    "main"
+  ],
+  "outputs": [
+    "main"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

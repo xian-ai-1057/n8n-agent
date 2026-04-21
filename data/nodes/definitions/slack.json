@@ -1,0 +1,87 @@
+{
+  "type": "n8n-nodes-base.slack",
+  "display_name": "Slack",
+  "description": "Send messages, upload files, and manage channels in Slack workspace.",
+  "category": "Communication",
+  "type_version": 2.2,
+  "parameters": [
+    {
+      "name": "resource",
+      "display_name": "Resource",
+      "type": "options",
+      "required": true,
+      "default": "message",
+      "description": "The resource to operate on",
+      "options": [
+        {
+          "name": "Channel",
+          "value": "channel"
+        },
+        {
+          "name": "File",
+          "value": "file"
+        },
+        {
+          "name": "Message",
+          "value": "message"
+        },
+        {
+          "name": "Reaction",
+          "value": "reaction"
+        },
+        {
+          "name": "User",
+          "value": "user"
+        }
+      ]
+    },
+    {
+      "name": "operation",
+      "display_name": "Operation",
+      "type": "options",
+      "required": true,
+      "default": "post",
+      "description": "The operation to perform",
+      "options": [
+        {
+          "name": "Send",
+          "value": "post"
+        },
+        {
+          "name": "Update",
+          "value": "update"
+        },
+        {
+          "name": "Delete",
+          "value": "delete"
+        }
+      ]
+    },
+    {
+      "name": "channel",
+      "display_name": "Channel",
+      "type": "string",
+      "required": true,
+      "default": "",
+      "description": "The Slack channel to send the message to"
+    },
+    {
+      "name": "text",
+      "display_name": "Message Text",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "description": "The text of the message to send"
+    }
+  ],
+  "credentials": [
+    "slackOAuth2Api"
+  ],
+  "inputs": [
+    "main"
+  ],
+  "outputs": [
+    "main"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

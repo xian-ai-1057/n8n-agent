@@ -1,0 +1,4989 @@
+[
+  {
+    "type": "n8n-nodes-base.activationTrigger",
+    "display_name": "Activation Trigger",
+    "category": "Trigger",
+    "description": "工作流程啟動/停用時觸發",
+    "default_type_version": null,
+    "keywords": [
+      "Activation",
+      "Trigger",
+      "工作流程啟動",
+      "停用時觸發"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+    "display_name": "Chat Trigger",
+    "category": "Trigger",
+    "description": "接收聊天訊息時觸發",
+    "default_type_version": null,
+    "keywords": [
+      "Chat",
+      "Trigger",
+      "接收聊天訊息時觸發"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.emailImap",
+    "display_name": "Email Trigger (IMAP)",
+    "category": "Trigger",
+    "description": "收到 Email 時觸發",
+    "default_type_version": null,
+    "keywords": [
+      "Email",
+      "Trigger",
+      "IMAP",
+      "收到",
+      "時觸發"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.errorTrigger",
+    "display_name": "Error Trigger",
+    "category": "Trigger",
+    "description": "工作流程錯誤時觸發",
+    "default_type_version": null,
+    "keywords": [
+      "Error",
+      "Trigger",
+      "工作流程錯誤時觸發"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.evaluationTrigger",
+    "display_name": "Evaluation Trigger",
+    "category": "Trigger",
+    "description": "AI 評估觸發",
+    "default_type_version": null,
+    "keywords": [
+      "Evaluation",
+      "Trigger",
+      "AI",
+      "評估觸發"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.executeWorkflowTrigger",
+    "display_name": "Execute Sub-workflow Trigger",
+    "category": "Trigger",
+    "description": "被其他工作流程呼叫時觸發",
+    "default_type_version": null,
+    "keywords": [
+      "Execute",
+      "Sub",
+      "workflow",
+      "Trigger",
+      "被其他工作流程呼叫時觸發"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.localFileTrigger",
+    "display_name": "Local File Trigger",
+    "category": "Trigger",
+    "description": "本地檔案變更時觸發",
+    "default_type_version": null,
+    "keywords": [
+      "Local",
+      "File",
+      "Trigger",
+      "本地檔案變更時觸發"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.manualWorkflowTrigger",
+    "display_name": "Manual Trigger",
+    "category": "Trigger",
+    "description": "手動觸發",
+    "default_type_version": null,
+    "keywords": [
+      "Manual",
+      "Trigger",
+      "手動觸發"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+    "display_name": "MCP Server Trigger",
+    "category": "Trigger",
+    "description": "MCP Server 請求觸發",
+    "default_type_version": null,
+    "keywords": [
+      "MCP",
+      "Server",
+      "Trigger",
+      "請求觸發"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.formTrigger",
+    "display_name": "n8n Form Trigger",
+    "category": "Trigger",
+    "description": "表單提交時觸發",
+    "default_type_version": null,
+    "keywords": [
+      "n8n",
+      "Form",
+      "Trigger",
+      "表單提交時觸發"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.n8nTrigger",
+    "display_name": "n8n Trigger",
+    "category": "Trigger",
+    "description": "n8n 內部事件觸發",
+    "default_type_version": null,
+    "keywords": [
+      "n8n",
+      "Trigger",
+      "內部事件觸發"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.rssFeedReadTrigger",
+    "display_name": "RSS Feed Trigger",
+    "category": "Trigger",
+    "description": "RSS 更新時觸發",
+    "default_type_version": null,
+    "keywords": [
+      "RSS",
+      "Feed",
+      "Trigger",
+      "更新時觸發"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.scheduleTrigger",
+    "display_name": "Schedule Trigger",
+    "category": "Trigger",
+    "description": "定時排程觸發",
+    "default_type_version": null,
+    "keywords": [
+      "Schedule",
+      "Trigger",
+      "定時排程觸發"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.sseTrigger",
+    "display_name": "SSE Trigger",
+    "category": "Trigger",
+    "description": "Server-Sent Events 觸發",
+    "default_type_version": null,
+    "keywords": [
+      "SSE",
+      "Trigger",
+      "Server",
+      "Sent",
+      "Events"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.webhook",
+    "display_name": "Webhook",
+    "category": "Trigger",
+    "description": "接收 Webhook 請求觸發",
+    "default_type_version": null,
+    "keywords": [
+      "Webhook",
+      "接收",
+      "請求觸發"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.workflowTrigger",
+    "display_name": "Workflow Trigger",
+    "category": "Trigger",
+    "description": "工作流程事件觸發",
+    "default_type_version": null,
+    "keywords": [
+      "Workflow",
+      "Trigger",
+      "工作流程事件觸發"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.aggregate",
+    "display_name": "Aggregate",
+    "category": "資料轉換",
+    "description": "合併多筆資料為單筆",
+    "default_type_version": null,
+    "keywords": [
+      "Aggregate",
+      "合併多筆資料為單筆"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.aiTransform",
+    "display_name": "AI Transform",
+    "category": "資料轉換",
+    "description": "AI 輔助資料轉換",
+    "default_type_version": null,
+    "keywords": [
+      "AI",
+      "Transform",
+      "輔助資料轉換"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.code",
+    "display_name": "Code",
+    "category": "程式碼",
+    "description": "自訂 JavaScript/Python 程式碼",
+    "default_type_version": null,
+    "keywords": [
+      "Code",
+      "自訂",
+      "JavaScript",
+      "Python",
+      "程式碼"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.compareDatasets",
+    "display_name": "Compare Datasets",
+    "category": "資料轉換",
+    "description": "比較兩組資料集",
+    "default_type_version": null,
+    "keywords": [
+      "Compare",
+      "Datasets",
+      "比較兩組資料集"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.compression",
+    "display_name": "Compression",
+    "category": "工具",
+    "description": "壓縮/解壓縮檔案",
+    "default_type_version": null,
+    "keywords": [
+      "Compression",
+      "壓縮",
+      "解壓縮檔案"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.convertToFile",
+    "display_name": "Convert to File",
+    "category": "資料轉換",
+    "description": "JSON 轉二進制檔案",
+    "default_type_version": null,
+    "keywords": [
+      "Convert",
+      "File",
+      "JSON",
+      "轉二進制檔案"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.crypto",
+    "display_name": "Crypto",
+    "category": "工具",
+    "description": "加密/雜湊操作",
+    "default_type_version": null,
+    "keywords": [
+      "Crypto",
+      "加密",
+      "雜湊操作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.dataTable",
+    "display_name": "Data Table",
+    "category": "資料轉換",
+    "description": "資料表操作",
+    "default_type_version": null,
+    "keywords": [
+      "Data",
+      "Table",
+      "資料表操作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.dateTime",
+    "display_name": "Date & Time",
+    "category": "資料轉換",
+    "description": "日期時間轉換與計算",
+    "default_type_version": null,
+    "keywords": [
+      "Date",
+      "Time",
+      "日期時間轉換與計算"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.debugHelper",
+    "display_name": "Debug Helper",
+    "category": "工具",
+    "description": "除錯輔助工具",
+    "default_type_version": null,
+    "keywords": [
+      "Debug",
+      "Helper",
+      "除錯輔助工具"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.set",
+    "display_name": "Edit Fields (Set)",
+    "category": "資料轉換",
+    "description": "設定/編輯欄位值",
+    "default_type_version": null,
+    "keywords": [
+      "Edit",
+      "Fields",
+      "Set",
+      "設定",
+      "編輯欄位值"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.editImage",
+    "display_name": "Edit Image",
+    "category": "資料轉換",
+    "description": "圖片編輯處理",
+    "default_type_version": null,
+    "keywords": [
+      "Edit",
+      "Image",
+      "圖片編輯處理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.evaluation",
+    "display_name": "Evaluation",
+    "category": "AI",
+    "description": "AI 輸出評估",
+    "default_type_version": null,
+    "keywords": [
+      "Evaluation",
+      "AI",
+      "輸出評估"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.executeCommand",
+    "display_name": "Execute Command",
+    "category": "程式碼",
+    "description": "執行系統指令",
+    "default_type_version": null,
+    "keywords": [
+      "Execute",
+      "Command",
+      "執行系統指令"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.executeWorkflow",
+    "display_name": "Execute Sub-workflow",
+    "category": "流程控制",
+    "description": "呼叫子工作流程",
+    "default_type_version": null,
+    "keywords": [
+      "Execute",
+      "Sub",
+      "workflow",
+      "呼叫子工作流程"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.executionData",
+    "display_name": "Execution Data",
+    "category": "工具",
+    "description": "存取執行資料",
+    "default_type_version": null,
+    "keywords": [
+      "Execution",
+      "Data",
+      "存取執行資料"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.extractFromFile",
+    "display_name": "Extract From File",
+    "category": "資料轉換",
+    "description": "從檔案提取資料",
+    "default_type_version": null,
+    "keywords": [
+      "Extract",
+      "File",
+      "從檔案提取資料"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.filter",
+    "display_name": "Filter",
+    "category": "流程控制",
+    "description": "過濾資料項目",
+    "default_type_version": null,
+    "keywords": [
+      "Filter",
+      "過濾資料項目"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.ftp",
+    "display_name": "FTP",
+    "category": "網路",
+    "description": "FTP/SFTP 檔案操作",
+    "default_type_version": null,
+    "keywords": [
+      "FTP",
+      "SFTP",
+      "檔案操作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.git",
+    "display_name": "Git",
+    "category": "工具",
+    "description": "Git 版控操作",
+    "default_type_version": null,
+    "keywords": [
+      "Git",
+      "版控操作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.graphql",
+    "display_name": "GraphQL",
+    "category": "網路",
+    "description": "GraphQL 查詢",
+    "default_type_version": null,
+    "keywords": [
+      "GraphQL",
+      "查詢"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.guardrails",
+    "display_name": "Guardrails",
+    "category": "AI",
+    "description": "AI 輸出安全護欄",
+    "default_type_version": null,
+    "keywords": [
+      "Guardrails",
+      "AI",
+      "輸出安全護欄"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.html",
+    "display_name": "HTML",
+    "category": "資料轉換",
+    "description": "HTML 解析與提取",
+    "default_type_version": null,
+    "keywords": [
+      "HTML",
+      "解析與提取"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.httpRequest",
+    "display_name": "HTTP Request",
+    "category": "網路",
+    "description": "發送 HTTP 請求",
+    "default_type_version": null,
+    "keywords": [
+      "HTTP",
+      "Request",
+      "發送",
+      "請求"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.if",
+    "display_name": "If",
+    "category": "流程控制",
+    "description": "條件判斷 (true/false)",
+    "default_type_version": null,
+    "keywords": [
+      "If",
+      "條件判斷",
+      "true",
+      "false"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.jwt",
+    "display_name": "JWT",
+    "category": "工具",
+    "description": "JWT 產生/驗證",
+    "default_type_version": null,
+    "keywords": [
+      "JWT",
+      "產生",
+      "驗證"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.ldap",
+    "display_name": "LDAP",
+    "category": "工具",
+    "description": "LDAP 目錄操作",
+    "default_type_version": null,
+    "keywords": [
+      "LDAP",
+      "目錄操作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.limit",
+    "display_name": "Limit",
+    "category": "流程控制",
+    "description": "限制輸出筆數",
+    "default_type_version": null,
+    "keywords": [
+      "Limit",
+      "限制輸出筆數"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.splitInBatches",
+    "display_name": "Loop Over Items",
+    "category": "流程控制",
+    "description": "批次迴圈處理",
+    "default_type_version": null,
+    "keywords": [
+      "Loop",
+      "Over",
+      "Items",
+      "批次迴圈處理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.markdown",
+    "display_name": "Markdown",
+    "category": "資料轉換",
+    "description": "Markdown ↔ HTML 轉換",
+    "default_type_version": null,
+    "keywords": [
+      "Markdown",
+      "HTML",
+      "轉換"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.mcpClient",
+    "display_name": "MCP Client",
+    "category": "AI",
+    "description": "MCP 協議客戶端",
+    "default_type_version": null,
+    "keywords": [
+      "MCP",
+      "Client",
+      "協議客戶端"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.merge",
+    "display_name": "Merge",
+    "category": "流程控制",
+    "description": "合併多輸入資料流",
+    "default_type_version": null,
+    "keywords": [
+      "Merge",
+      "合併多輸入資料流"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.n8n",
+    "display_name": "n8n",
+    "category": "工具",
+    "description": "n8n API 操作",
+    "default_type_version": null,
+    "keywords": [
+      "n8n",
+      "API",
+      "操作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.form",
+    "display_name": "n8n Form",
+    "category": "工具",
+    "description": "表單節點",
+    "default_type_version": null,
+    "keywords": [
+      "n8n",
+      "Form",
+      "表單節點"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.noOp",
+    "display_name": "No Operation, do nothing",
+    "category": "流程控制",
+    "description": "空操作（不做任何事）",
+    "default_type_version": null,
+    "keywords": [
+      "No",
+      "Operation",
+      "do",
+      "nothing",
+      "空操作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.readWriteFile",
+    "display_name": "Read/Write Files from Disk",
+    "category": "工具",
+    "description": "磁碟檔案讀寫",
+    "default_type_version": null,
+    "keywords": [
+      "Read",
+      "Write",
+      "Files",
+      "Disk",
+      "磁碟檔案讀寫"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.removeDuplicates",
+    "display_name": "Remove Duplicates",
+    "category": "資料轉換",
+    "description": "移除重複資料",
+    "default_type_version": null,
+    "keywords": [
+      "Remove",
+      "Duplicates",
+      "移除重複資料"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.renameKeys",
+    "display_name": "Rename Keys",
+    "category": "資料轉換",
+    "description": "重新命名欄位 Key",
+    "default_type_version": null,
+    "keywords": [
+      "Rename",
+      "Keys",
+      "重新命名欄位",
+      "Key"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.chat",
+    "display_name": "Chat",
+    "category": "AI",
+    "description": "AI 對話節點",
+    "default_type_version": null,
+    "keywords": [
+      "Chat",
+      "AI",
+      "對話節點"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.respondToWebhook",
+    "display_name": "Respond to Webhook",
+    "category": "流程控制",
+    "description": "回覆 Webhook 請求",
+    "default_type_version": null,
+    "keywords": [
+      "Respond",
+      "Webhook",
+      "回覆",
+      "請求"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.rssFeedRead",
+    "display_name": "RSS Read",
+    "category": "網路",
+    "description": "讀取 RSS Feed",
+    "default_type_version": null,
+    "keywords": [
+      "RSS",
+      "Read",
+      "讀取",
+      "Feed"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.sendEmail",
+    "display_name": "Send Email",
+    "category": "網路",
+    "description": "發送 Email (SMTP)",
+    "default_type_version": null,
+    "keywords": [
+      "Send",
+      "Email",
+      "發送",
+      "SMTP"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.sort",
+    "display_name": "Sort",
+    "category": "資料轉換",
+    "description": "排序資料",
+    "default_type_version": null,
+    "keywords": [
+      "Sort",
+      "排序資料"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.splitOut",
+    "display_name": "Split Out",
+    "category": "資料轉換",
+    "description": "拆分陣列為多筆項目",
+    "default_type_version": null,
+    "keywords": [
+      "Split",
+      "Out",
+      "拆分陣列為多筆項目"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.ssh",
+    "display_name": "SSH",
+    "category": "網路",
+    "description": "SSH 遠端操作",
+    "default_type_version": null,
+    "keywords": [
+      "SSH",
+      "遠端操作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.stopAndError",
+    "display_name": "Stop And Error",
+    "category": "流程控制",
+    "description": "停止工作流程並拋出錯誤",
+    "default_type_version": null,
+    "keywords": [
+      "Stop",
+      "Error",
+      "停止工作流程並拋出錯誤"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.summarize",
+    "display_name": "Summarize",
+    "category": "資料轉換",
+    "description": "資料摘要統計",
+    "default_type_version": null,
+    "keywords": [
+      "Summarize",
+      "資料摘要統計"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.switch",
+    "display_name": "Switch",
+    "category": "流程控制",
+    "description": "多路條件分支",
+    "default_type_version": null,
+    "keywords": [
+      "Switch",
+      "多路條件分支"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.totp",
+    "display_name": "TOTP",
+    "category": "工具",
+    "description": "TOTP 動態密碼",
+    "default_type_version": null,
+    "keywords": [
+      "TOTP",
+      "動態密碼"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.wait",
+    "display_name": "Wait",
+    "category": "流程控制",
+    "description": "暫停等待",
+    "default_type_version": null,
+    "keywords": [
+      "Wait",
+      "暫停等待"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.xml",
+    "display_name": "XML",
+    "category": "資料轉換",
+    "description": "XML ↔ JSON 轉換",
+    "default_type_version": null,
+    "keywords": [
+      "XML",
+      "JSON",
+      "轉換"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.agent",
+    "display_name": "AI Agent",
+    "category": "Root Node",
+    "description": "AI Agent（Tools Agent）",
+    "default_type_version": null,
+    "keywords": [
+      "AI",
+      "Agent",
+      "Tools"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.chainLlm",
+    "display_name": "Basic LLM Chain",
+    "category": "Root Node",
+    "description": "基本 LLM 呼叫鏈",
+    "default_type_version": null,
+    "keywords": [
+      "Basic",
+      "LLM",
+      "Chain",
+      "基本",
+      "呼叫鏈"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.chainRetrievalQa",
+    "display_name": "Question and Answer Chain",
+    "category": "Root Node",
+    "description": "RAG 問答鏈",
+    "default_type_version": null,
+    "keywords": [
+      "Question",
+      "Answer",
+      "Chain",
+      "RAG",
+      "問答鏈"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.chainSummarization",
+    "display_name": "Summarization Chain",
+    "category": "Root Node",
+    "description": "摘要生成鏈",
+    "default_type_version": null,
+    "keywords": [
+      "Summarization",
+      "Chain",
+      "摘要生成鏈"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.information-extractor",
+    "display_name": "Information Extractor",
+    "category": "Root Node",
+    "description": "結構化資訊提取",
+    "default_type_version": null,
+    "keywords": [
+      "Information",
+      "Extractor",
+      "結構化資訊提取"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.text-classifier",
+    "display_name": "Text Classifier",
+    "category": "Root Node",
+    "description": "文本分類",
+    "default_type_version": null,
+    "keywords": [
+      "Text",
+      "Classifier",
+      "文本分類"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.sentimentAnalysis",
+    "display_name": "Sentiment Analysis",
+    "category": "Root Node",
+    "description": "情感分析",
+    "default_type_version": null,
+    "keywords": [
+      "Sentiment",
+      "Analysis",
+      "情感分析"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.code",
+    "display_name": "LangChain Code",
+    "category": "Root Node",
+    "description": "自訂 LangChain 程式碼",
+    "default_type_version": null,
+    "keywords": [
+      "LangChain",
+      "Code",
+      "自訂",
+      "程式碼"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.microsoftAgent365Trigger",
+    "display_name": "Microsoft Agent 365 Trigger",
+    "category": "Root Node",
+    "description": "Microsoft 365 Agent 觸發",
+    "default_type_version": null,
+    "keywords": [
+      "Microsoft",
+      "Agent",
+      "Trigger",
+      "觸發"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.vectorStoreAzureAiSearch",
+    "display_name": "Azure AI Search Vector Store",
+    "category": "Vector Store",
+    "description": "Azure AI Search 向量存儲",
+    "default_type_version": null,
+    "keywords": [
+      "Azure",
+      "AI",
+      "Search",
+      "Vector",
+      "Store"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+    "display_name": "Simple Vector Store",
+    "category": "Vector Store",
+    "description": "記憶體內向量存儲",
+    "default_type_version": null,
+    "keywords": [
+      "Simple",
+      "Vector",
+      "Store",
+      "記憶體內向量存儲"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.vectorStoreMilvus",
+    "display_name": "Milvus Vector Store",
+    "category": "Vector Store",
+    "description": "Milvus 向量資料庫",
+    "default_type_version": null,
+    "keywords": [
+      "Milvus",
+      "Vector",
+      "Store",
+      "向量資料庫"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.vectorStoreMongoDBAtlas",
+    "display_name": "MongoDB Atlas Vector Store",
+    "category": "Vector Store",
+    "description": "MongoDB Atlas 向量存儲",
+    "default_type_version": null,
+    "keywords": [
+      "MongoDB",
+      "Atlas",
+      "Vector",
+      "Store",
+      "向量存儲"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+    "display_name": "PGVector Vector Store",
+    "category": "Vector Store",
+    "description": "PostgreSQL PGVector",
+    "default_type_version": null,
+    "keywords": [
+      "PGVector",
+      "Vector",
+      "Store",
+      "PostgreSQL"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.vectorStoreChroma",
+    "display_name": "Chroma Vector Store",
+    "category": "Vector Store",
+    "description": "Chroma 向量資料庫",
+    "default_type_version": null,
+    "keywords": [
+      "Chroma",
+      "Vector",
+      "Store",
+      "向量資料庫"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+    "display_name": "Pinecone Vector Store",
+    "category": "Vector Store",
+    "description": "Pinecone 向量資料庫",
+    "default_type_version": null,
+    "keywords": [
+      "Pinecone",
+      "Vector",
+      "Store",
+      "向量資料庫"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+    "display_name": "Qdrant Vector Store",
+    "category": "Vector Store",
+    "description": "Qdrant 向量資料庫",
+    "default_type_version": null,
+    "keywords": [
+      "Qdrant",
+      "Vector",
+      "Store",
+      "向量資料庫"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.vectorStoreRedis",
+    "display_name": "Redis Vector Store",
+    "category": "Vector Store",
+    "description": "Redis 向量存儲",
+    "default_type_version": null,
+    "keywords": [
+      "Redis",
+      "Vector",
+      "Store",
+      "向量存儲"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+    "display_name": "Supabase Vector Store",
+    "category": "Vector Store",
+    "description": "Supabase 向量存儲",
+    "default_type_version": null,
+    "keywords": [
+      "Supabase",
+      "Vector",
+      "Store",
+      "向量存儲"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.vectorStoreWeaviate",
+    "display_name": "Weaviate Vector Store",
+    "category": "Vector Store",
+    "description": "Weaviate 向量資料庫",
+    "default_type_version": null,
+    "keywords": [
+      "Weaviate",
+      "Vector",
+      "Store",
+      "向量資料庫"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.vectorStoreZep",
+    "display_name": "Zep Vector Store",
+    "category": "Vector Store",
+    "description": "Zep 向量存儲",
+    "default_type_version": null,
+    "keywords": [
+      "Zep",
+      "Vector",
+      "Store",
+      "向量存儲"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+    "display_name": "Default Data Loader",
+    "category": "Document Loader",
+    "description": "預設文件載入器",
+    "default_type_version": null,
+    "keywords": [
+      "Default",
+      "Data",
+      "Loader",
+      "預設文件載入器"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.documentGithubLoader",
+    "display_name": "GitHub Document Loader",
+    "category": "Document Loader",
+    "description": "GitHub 文件載入器",
+    "default_type_version": null,
+    "keywords": [
+      "GitHub",
+      "Document",
+      "Loader",
+      "文件載入器"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.embeddingsAwsBedrock",
+    "display_name": "Embeddings AWS Bedrock",
+    "category": "Embedding",
+    "description": "AWS Bedrock 嵌入模型",
+    "default_type_version": null,
+    "keywords": [
+      "Embeddings",
+      "AWS",
+      "Bedrock",
+      "嵌入模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.embeddingsAzureOpenAi",
+    "display_name": "Embeddings Azure OpenAI",
+    "category": "Embedding",
+    "description": "Azure OpenAI 嵌入模型",
+    "default_type_version": null,
+    "keywords": [
+      "Embeddings",
+      "Azure",
+      "OpenAI",
+      "嵌入模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+    "display_name": "Embeddings Cohere",
+    "category": "Embedding",
+    "description": "Cohere 嵌入模型",
+    "default_type_version": null,
+    "keywords": [
+      "Embeddings",
+      "Cohere",
+      "嵌入模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+    "display_name": "Embeddings Google Gemini",
+    "category": "Embedding",
+    "description": "Google Gemini 嵌入模型",
+    "default_type_version": null,
+    "keywords": [
+      "Embeddings",
+      "Google",
+      "Gemini",
+      "嵌入模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.embeddingsGooglePalm",
+    "display_name": "Embeddings Google PaLM",
+    "category": "Embedding",
+    "description": "Google PaLM 嵌入模型",
+    "default_type_version": null,
+    "keywords": [
+      "Embeddings",
+      "Google",
+      "PaLM",
+      "嵌入模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleVertex",
+    "display_name": "Embeddings Google Vertex",
+    "category": "Embedding",
+    "description": "Google Vertex 嵌入模型",
+    "default_type_version": null,
+    "keywords": [
+      "Embeddings",
+      "Google",
+      "Vertex",
+      "嵌入模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+    "display_name": "Embeddings HuggingFace",
+    "category": "Embedding",
+    "description": "HuggingFace 嵌入模型",
+    "default_type_version": null,
+    "keywords": [
+      "Embeddings",
+      "HuggingFace",
+      "嵌入模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.embeddingsMistralCloud",
+    "display_name": "Embeddings Mistral Cloud",
+    "category": "Embedding",
+    "description": "Mistral Cloud 嵌入模型",
+    "default_type_version": null,
+    "keywords": [
+      "Embeddings",
+      "Mistral",
+      "Cloud",
+      "嵌入模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+    "display_name": "Embeddings Ollama",
+    "category": "Embedding",
+    "description": "Ollama 本地嵌入模型",
+    "default_type_version": null,
+    "keywords": [
+      "Embeddings",
+      "Ollama",
+      "本地嵌入模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+    "display_name": "Embeddings OpenAI",
+    "category": "Embedding",
+    "description": "OpenAI 嵌入模型",
+    "default_type_version": null,
+    "keywords": [
+      "Embeddings",
+      "OpenAI",
+      "嵌入模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+    "display_name": "Anthropic Chat Model",
+    "category": "Chat Model",
+    "description": "Anthropic Claude 模型",
+    "default_type_version": null,
+    "keywords": [
+      "Anthropic",
+      "Chat",
+      "Model",
+      "Claude",
+      "模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.lmChatAwsBedrock",
+    "display_name": "AWS Bedrock Chat Model",
+    "category": "Chat Model",
+    "description": "AWS Bedrock 聊天模型",
+    "default_type_version": null,
+    "keywords": [
+      "AWS",
+      "Bedrock",
+      "Chat",
+      "Model",
+      "聊天模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+    "display_name": "Azure OpenAI Chat Model",
+    "category": "Chat Model",
+    "description": "Azure OpenAI 聊天模型",
+    "default_type_version": null,
+    "keywords": [
+      "Azure",
+      "OpenAI",
+      "Chat",
+      "Model",
+      "聊天模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.lmChatCohere",
+    "display_name": "Cohere Chat Model",
+    "category": "Chat Model",
+    "description": "Cohere 聊天模型",
+    "default_type_version": null,
+    "keywords": [
+      "Cohere",
+      "Chat",
+      "Model",
+      "聊天模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+    "display_name": "DeepSeek Chat Model",
+    "category": "Chat Model",
+    "description": "DeepSeek 聊天模型",
+    "default_type_version": null,
+    "keywords": [
+      "DeepSeek",
+      "Chat",
+      "Model",
+      "聊天模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+    "display_name": "Google Gemini Chat Model",
+    "category": "Chat Model",
+    "description": "Google Gemini 聊天模型",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Gemini",
+      "Chat",
+      "Model",
+      "聊天模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.lmChatGoogleVertex",
+    "display_name": "Google Vertex Chat Model",
+    "category": "Chat Model",
+    "description": "Google Vertex 聊天模型",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Vertex",
+      "Chat",
+      "Model",
+      "聊天模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+    "display_name": "Groq Chat Model",
+    "category": "Chat Model",
+    "description": "Groq 聊天模型",
+    "default_type_version": null,
+    "keywords": [
+      "Groq",
+      "Chat",
+      "Model",
+      "聊天模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.lmChatMistralCloud",
+    "display_name": "Mistral Cloud Chat Model",
+    "category": "Chat Model",
+    "description": "Mistral Cloud 聊天模型",
+    "default_type_version": null,
+    "keywords": [
+      "Mistral",
+      "Cloud",
+      "Chat",
+      "Model",
+      "聊天模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+    "display_name": "Ollama Chat Model",
+    "category": "Chat Model",
+    "description": "Ollama 本地聊天模型",
+    "default_type_version": null,
+    "keywords": [
+      "Ollama",
+      "Chat",
+      "Model",
+      "本地聊天模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+    "display_name": "OpenAI Chat Model",
+    "category": "Chat Model",
+    "description": "OpenAI GPT 聊天模型",
+    "default_type_version": null,
+    "keywords": [
+      "OpenAI",
+      "Chat",
+      "Model",
+      "GPT",
+      "聊天模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+    "display_name": "OpenRouter Chat Model",
+    "category": "Chat Model",
+    "description": "OpenRouter 聊天模型",
+    "default_type_version": null,
+    "keywords": [
+      "OpenRouter",
+      "Chat",
+      "Model",
+      "聊天模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.lmChatVercel",
+    "display_name": "Vercel AI Gateway Chat Model",
+    "category": "Chat Model",
+    "description": "Vercel AI Gateway 模型",
+    "default_type_version": null,
+    "keywords": [
+      "Vercel",
+      "AI",
+      "Gateway",
+      "Chat",
+      "Model"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.lmChatXaiGrok",
+    "display_name": "xAI Grok Chat Model",
+    "category": "Chat Model",
+    "description": "xAI Grok 聊天模型",
+    "default_type_version": null,
+    "keywords": [
+      "xAI",
+      "Grok",
+      "Chat",
+      "Model",
+      "聊天模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.lmCohere",
+    "display_name": "Cohere Model",
+    "category": "LLM Model",
+    "description": "Cohere LLM 模型",
+    "default_type_version": null,
+    "keywords": [
+      "Cohere",
+      "Model",
+      "LLM",
+      "模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.lmOllama",
+    "display_name": "Ollama Model",
+    "category": "LLM Model",
+    "description": "Ollama 本地 LLM 模型",
+    "default_type_version": null,
+    "keywords": [
+      "Ollama",
+      "Model",
+      "本地",
+      "LLM",
+      "模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.lmOpenHuggingFaceInference",
+    "display_name": "HuggingFace Inference Model",
+    "category": "LLM Model",
+    "description": "HuggingFace 推理模型",
+    "default_type_version": null,
+    "keywords": [
+      "HuggingFace",
+      "Inference",
+      "Model",
+      "推理模型"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.memoryManager",
+    "display_name": "Chat Memory Manager",
+    "category": "Memory",
+    "description": "聊天記憶管理器",
+    "default_type_version": null,
+    "keywords": [
+      "Chat",
+      "Memory",
+      "Manager",
+      "聊天記憶管理器"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+    "display_name": "Simple Memory",
+    "category": "Memory",
+    "description": "簡易記憶（視窗緩衝）",
+    "default_type_version": null,
+    "keywords": [
+      "Simple",
+      "Memory",
+      "簡易記憶",
+      "視窗緩衝"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.memoryMotorhead",
+    "display_name": "Motorhead",
+    "category": "Memory",
+    "description": "Motorhead 記憶",
+    "default_type_version": null,
+    "keywords": [
+      "Motorhead",
+      "記憶"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.memoryMongoDbChat",
+    "display_name": "MongoDB Chat Memory",
+    "category": "Memory",
+    "description": "MongoDB 聊天記憶",
+    "default_type_version": null,
+    "keywords": [
+      "MongoDB",
+      "Chat",
+      "Memory",
+      "聊天記憶"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+    "display_name": "Redis Chat Memory",
+    "category": "Memory",
+    "description": "Redis 聊天記憶",
+    "default_type_version": null,
+    "keywords": [
+      "Redis",
+      "Chat",
+      "Memory",
+      "聊天記憶"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+    "display_name": "Postgres Chat Memory",
+    "category": "Memory",
+    "description": "Postgres 聊天記憶",
+    "default_type_version": null,
+    "keywords": [
+      "Postgres",
+      "Chat",
+      "Memory",
+      "聊天記憶"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.memoryXata",
+    "display_name": "Xata",
+    "category": "Memory",
+    "description": "Xata 記憶",
+    "default_type_version": null,
+    "keywords": [
+      "Xata",
+      "記憶"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.memoryZep",
+    "display_name": "Zep",
+    "category": "Memory",
+    "description": "Zep 記憶",
+    "default_type_version": null,
+    "keywords": [
+      "Zep",
+      "記憶"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+    "display_name": "Auto-fixing Output Parser",
+    "category": "Output Parser",
+    "description": "自動修復輸出解析器",
+    "default_type_version": null,
+    "keywords": [
+      "Auto",
+      "fixing",
+      "Output",
+      "Parser",
+      "自動修復輸出解析器"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.outputParserItemList",
+    "display_name": "Item List Output Parser",
+    "category": "Output Parser",
+    "description": "項目清單輸出解析器",
+    "default_type_version": null,
+    "keywords": [
+      "Item",
+      "List",
+      "Output",
+      "Parser",
+      "項目清單輸出解析器"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+    "display_name": "Structured Output Parser",
+    "category": "Output Parser",
+    "description": "結構化輸出解析器",
+    "default_type_version": null,
+    "keywords": [
+      "Structured",
+      "Output",
+      "Parser",
+      "結構化輸出解析器"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.retrieverContextualCompression",
+    "display_name": "Contextual Compression Retriever",
+    "category": "Retriever",
+    "description": "上下文壓縮檢索器",
+    "default_type_version": null,
+    "keywords": [
+      "Contextual",
+      "Compression",
+      "Retriever",
+      "上下文壓縮檢索器"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.retrieverMultiQuery",
+    "display_name": "MultiQuery Retriever",
+    "category": "Retriever",
+    "description": "多查詢檢索器",
+    "default_type_version": null,
+    "keywords": [
+      "MultiQuery",
+      "Retriever",
+      "多查詢檢索器"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.retrieverVectorStore",
+    "display_name": "Vector Store Retriever",
+    "category": "Retriever",
+    "description": "向量存儲檢索器",
+    "default_type_version": null,
+    "keywords": [
+      "Vector",
+      "Store",
+      "Retriever",
+      "向量存儲檢索器"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.retrieverWorkflow",
+    "display_name": "Workflow Retriever",
+    "category": "Retriever",
+    "description": "工作流程檢索器",
+    "default_type_version": null,
+    "keywords": [
+      "Workflow",
+      "Retriever",
+      "工作流程檢索器"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.textSplitterCharacterTextSplitter",
+    "display_name": "Character Text Splitter",
+    "category": "Text Splitter",
+    "description": "字元文本分割器",
+    "default_type_version": null,
+    "keywords": [
+      "Character",
+      "Text",
+      "Splitter",
+      "字元文本分割器"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+    "display_name": "Recursive Character Text Splitter",
+    "category": "Text Splitter",
+    "description": "遞迴字元分割器",
+    "default_type_version": null,
+    "keywords": [
+      "Recursive",
+      "Character",
+      "Text",
+      "Splitter",
+      "遞迴字元分割器"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.textSplitterTokenSplitter",
+    "display_name": "Token Splitter",
+    "category": "Text Splitter",
+    "description": "Token 分割器",
+    "default_type_version": null,
+    "keywords": [
+      "Token",
+      "Splitter",
+      "分割器"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.toolAiAgent",
+    "display_name": "AI Agent Tool",
+    "category": "Tool",
+    "description": "AI Agent 工具（嵌套）",
+    "default_type_version": null,
+    "keywords": [
+      "AI",
+      "Agent",
+      "Tool",
+      "工具",
+      "嵌套"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+    "display_name": "Calculator",
+    "category": "Tool",
+    "description": "計算機工具",
+    "default_type_version": null,
+    "keywords": [
+      "Calculator",
+      "計算機工具"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.toolCode",
+    "display_name": "Custom Code Tool",
+    "category": "Tool",
+    "description": "自訂程式碼工具",
+    "default_type_version": null,
+    "keywords": [
+      "Custom",
+      "Code",
+      "Tool",
+      "自訂程式碼工具"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.toolMcp",
+    "display_name": "MCP Client Tool",
+    "category": "Tool",
+    "description": "MCP 客戶端工具",
+    "default_type_version": null,
+    "keywords": [
+      "MCP",
+      "Client",
+      "Tool",
+      "客戶端工具"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.toolSearxng",
+    "display_name": "SearXNG Tool",
+    "category": "Tool",
+    "description": "SearXNG 搜尋工具",
+    "default_type_version": null,
+    "keywords": [
+      "SearXNG",
+      "Tool",
+      "搜尋工具"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
+    "display_name": "SerpApi (Google Search)",
+    "category": "Tool",
+    "description": "SerpApi Google 搜尋",
+    "default_type_version": null,
+    "keywords": [
+      "SerpApi",
+      "Google",
+      "Search",
+      "搜尋"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.toolThink",
+    "display_name": "Think Tool",
+    "category": "Tool",
+    "description": "思考工具",
+    "default_type_version": null,
+    "keywords": [
+      "Think",
+      "Tool",
+      "思考工具"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+    "display_name": "Vector Store Q&A Tool",
+    "category": "Tool",
+    "description": "向量存儲問答工具",
+    "default_type_version": null,
+    "keywords": [
+      "Vector",
+      "Store",
+      "Tool",
+      "向量存儲問答工具"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.toolWikipedia",
+    "display_name": "Wikipedia",
+    "category": "Tool",
+    "description": "Wikipedia 工具",
+    "default_type_version": null,
+    "keywords": [
+      "Wikipedia",
+      "工具"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.toolWolframAlpha",
+    "display_name": "Wolfram|Alpha",
+    "category": "Tool",
+    "description": "Wolfram|Alpha 工具",
+    "default_type_version": null,
+    "keywords": [
+      "Wolfram",
+      "Alpha",
+      "工具"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+    "display_name": "Call n8n Workflow Tool",
+    "category": "Tool",
+    "description": "呼叫 n8n 工作流程工具",
+    "default_type_version": null,
+    "keywords": [
+      "Call",
+      "n8n",
+      "Workflow",
+      "Tool",
+      "呼叫"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+    "display_name": "Reranker Cohere",
+    "category": "Reranker",
+    "description": "Cohere 重排序器",
+    "default_type_version": null,
+    "keywords": [
+      "Reranker",
+      "Cohere",
+      "重排序器"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.modelSelector",
+    "display_name": "Model Selector",
+    "category": "Utility",
+    "description": "模型選擇器",
+    "default_type_version": null,
+    "keywords": [
+      "Model",
+      "Selector",
+      "模型選擇器"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.actionNetwork",
+    "display_name": "Action Network",
+    "category": "行銷",
+    "description": "行動網絡平台",
+    "default_type_version": null,
+    "keywords": [
+      "Action",
+      "Network",
+      "行動網絡平台"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.activeCampaign",
+    "display_name": "ActiveCampaign",
+    "category": "行銷",
+    "description": "行銷自動化",
+    "default_type_version": null,
+    "keywords": [
+      "ActiveCampaign",
+      "行銷自動化"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.adalo",
+    "display_name": "Adalo",
+    "category": "開發",
+    "description": "No-code App 建構",
+    "default_type_version": null,
+    "keywords": [
+      "Adalo",
+      "No",
+      "code",
+      "App",
+      "建構"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.affinity",
+    "display_name": "Affinity",
+    "category": "CRM",
+    "description": "關係管理",
+    "default_type_version": null,
+    "keywords": [
+      "Affinity",
+      "關係管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.agileCrm",
+    "display_name": "Agile CRM",
+    "category": "CRM",
+    "description": "敏捷 CRM",
+    "default_type_version": null,
+    "keywords": [
+      "Agile",
+      "CRM",
+      "敏捷"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.airtable",
+    "display_name": "Airtable",
+    "category": "資料庫",
+    "description": "Airtable 操作",
+    "default_type_version": null,
+    "keywords": [
+      "Airtable",
+      "操作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.airtop",
+    "display_name": "Airtop",
+    "category": "瀏覽器",
+    "description": "AI 瀏覽器自動化",
+    "default_type_version": null,
+    "keywords": [
+      "Airtop",
+      "AI",
+      "瀏覽器自動化"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.amqp",
+    "display_name": "AMQP Sender",
+    "category": "訊息佇列",
+    "description": "AMQP 訊息發送",
+    "default_type_version": null,
+    "keywords": [
+      "AMQP",
+      "Sender",
+      "訊息發送"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.anthropic",
+    "display_name": "Anthropic",
+    "category": "AI",
+    "description": "Anthropic API",
+    "default_type_version": null,
+    "keywords": [
+      "Anthropic",
+      "API"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.apiTemplateIo",
+    "display_name": "APITemplate.io",
+    "category": "工具",
+    "description": "PDF/圖片模板",
+    "default_type_version": null,
+    "keywords": [
+      "APITemplate",
+      "io",
+      "PDF",
+      "圖片模板"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.asana",
+    "display_name": "Asana",
+    "category": "專案管理",
+    "description": "Asana 任務管理",
+    "default_type_version": null,
+    "keywords": [
+      "Asana",
+      "任務管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.autopilot",
+    "display_name": "Autopilot",
+    "category": "行銷",
+    "description": "行銷自動化",
+    "default_type_version": null,
+    "keywords": [
+      "Autopilot",
+      "行銷自動化"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.awsCertificateManager",
+    "display_name": "AWS Certificate Manager",
+    "category": "AWS",
+    "description": "SSL 憑證管理",
+    "default_type_version": null,
+    "keywords": [
+      "AWS",
+      "Certificate",
+      "Manager",
+      "SSL",
+      "憑證管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.awsCognito",
+    "display_name": "AWS Cognito",
+    "category": "AWS",
+    "description": "身分認證",
+    "default_type_version": null,
+    "keywords": [
+      "AWS",
+      "Cognito",
+      "身分認證"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.awsComprehend",
+    "display_name": "AWS Comprehend",
+    "category": "AWS",
+    "description": "NLP 文本分析",
+    "default_type_version": null,
+    "keywords": [
+      "AWS",
+      "Comprehend",
+      "NLP",
+      "文本分析"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.awsDynamoDb",
+    "display_name": "AWS DynamoDB",
+    "category": "AWS",
+    "description": "NoSQL 資料庫",
+    "default_type_version": null,
+    "keywords": [
+      "AWS",
+      "DynamoDB",
+      "NoSQL",
+      "資料庫"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.awsElb",
+    "display_name": "AWS Elastic Load Balancing",
+    "category": "AWS",
+    "description": "負載均衡",
+    "default_type_version": null,
+    "keywords": [
+      "AWS",
+      "Elastic",
+      "Load",
+      "Balancing",
+      "負載均衡"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.awsIam",
+    "display_name": "AWS IAM",
+    "category": "AWS",
+    "description": "身分存取管理",
+    "default_type_version": null,
+    "keywords": [
+      "AWS",
+      "IAM",
+      "身分存取管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.awsLambda",
+    "display_name": "AWS Lambda",
+    "category": "AWS",
+    "description": "Serverless 函數",
+    "default_type_version": null,
+    "keywords": [
+      "AWS",
+      "Lambda",
+      "Serverless",
+      "函數"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.awsRekognition",
+    "display_name": "AWS Rekognition",
+    "category": "AWS",
+    "description": "影像辨識",
+    "default_type_version": null,
+    "keywords": [
+      "AWS",
+      "Rekognition",
+      "影像辨識"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.awsS3",
+    "display_name": "AWS S3",
+    "category": "AWS",
+    "description": "物件存儲",
+    "default_type_version": null,
+    "keywords": [
+      "AWS",
+      "S3",
+      "物件存儲"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.awsSes",
+    "display_name": "AWS SES",
+    "category": "AWS",
+    "description": "Email 服務",
+    "default_type_version": null,
+    "keywords": [
+      "AWS",
+      "SES",
+      "Email",
+      "服務"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.awsSns",
+    "display_name": "AWS SNS",
+    "category": "AWS",
+    "description": "通知服務",
+    "default_type_version": null,
+    "keywords": [
+      "AWS",
+      "SNS",
+      "通知服務"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.awsSqs",
+    "display_name": "AWS SQS",
+    "category": "AWS",
+    "description": "訊息佇列",
+    "default_type_version": null,
+    "keywords": [
+      "AWS",
+      "SQS",
+      "訊息佇列"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.awsTextract",
+    "display_name": "AWS Textract",
+    "category": "AWS",
+    "description": "文件 OCR 提取",
+    "default_type_version": null,
+    "keywords": [
+      "AWS",
+      "Textract",
+      "文件",
+      "OCR",
+      "提取"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.awsTranscribe",
+    "display_name": "AWS Transcribe",
+    "category": "AWS",
+    "description": "語音轉文字",
+    "default_type_version": null,
+    "keywords": [
+      "AWS",
+      "Transcribe",
+      "語音轉文字"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.azureCosmosDb",
+    "display_name": "Azure Cosmos DB",
+    "category": "Azure",
+    "description": "NoSQL 資料庫",
+    "default_type_version": null,
+    "keywords": [
+      "Azure",
+      "Cosmos",
+      "DB",
+      "NoSQL",
+      "資料庫"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.azureStorage",
+    "display_name": "Azure Storage",
+    "category": "Azure",
+    "description": "雲端存儲",
+    "default_type_version": null,
+    "keywords": [
+      "Azure",
+      "Storage",
+      "雲端存儲"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.bambooHr",
+    "display_name": "BambooHR",
+    "category": "HR",
+    "description": "人力資源管理",
+    "default_type_version": null,
+    "keywords": [
+      "BambooHR",
+      "人力資源管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.bannerbear",
+    "display_name": "Bannerbear",
+    "category": "設計",
+    "description": "自動圖片生成",
+    "default_type_version": null,
+    "keywords": [
+      "Bannerbear",
+      "自動圖片生成"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.baserow",
+    "display_name": "Baserow",
+    "category": "資料庫",
+    "description": "開源資料庫平台",
+    "default_type_version": null,
+    "keywords": [
+      "Baserow",
+      "開源資料庫平台"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.beeminder",
+    "display_name": "Beeminder",
+    "category": "生產力",
+    "description": "目標追蹤",
+    "default_type_version": null,
+    "keywords": [
+      "Beeminder",
+      "目標追蹤"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.bitly",
+    "display_name": "Bitly",
+    "category": "工具",
+    "description": "短網址服務",
+    "default_type_version": null,
+    "keywords": [
+      "Bitly",
+      "短網址服務"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.bitwarden",
+    "display_name": "Bitwarden",
+    "category": "安全",
+    "description": "密碼管理",
+    "default_type_version": null,
+    "keywords": [
+      "Bitwarden",
+      "密碼管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.box",
+    "display_name": "Box",
+    "category": "檔案",
+    "description": "雲端檔案管理",
+    "default_type_version": null,
+    "keywords": [
+      "Box",
+      "雲端檔案管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.brandfetch",
+    "display_name": "Brandfetch",
+    "category": "工具",
+    "description": "品牌資產獲取",
+    "default_type_version": null,
+    "keywords": [
+      "Brandfetch",
+      "品牌資產獲取"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.brevo",
+    "display_name": "Brevo",
+    "category": "行銷",
+    "description": "Email 行銷",
+    "default_type_version": null,
+    "keywords": [
+      "Brevo",
+      "Email",
+      "行銷"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.bubble",
+    "display_name": "Bubble",
+    "category": "開發",
+    "description": "No-code 平台",
+    "default_type_version": null,
+    "keywords": [
+      "Bubble",
+      "No",
+      "code",
+      "平台"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.chargebee",
+    "display_name": "Chargebee",
+    "category": "金融",
+    "description": "訂閱計費",
+    "default_type_version": null,
+    "keywords": [
+      "Chargebee",
+      "訂閱計費"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.circleCI",
+    "display_name": "CircleCI",
+    "category": "DevOps",
+    "description": "CI/CD",
+    "default_type_version": null,
+    "keywords": [
+      "CircleCI",
+      "CI",
+      "CD"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.ciscoWebex",
+    "display_name": "Webex by Cisco",
+    "category": "通訊",
+    "description": "Cisco Webex",
+    "default_type_version": null,
+    "keywords": [
+      "Webex",
+      "Cisco"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.clearbit",
+    "display_name": "Clearbit",
+    "category": "資料",
+    "description": "公司/人員資訊",
+    "default_type_version": null,
+    "keywords": [
+      "Clearbit",
+      "公司",
+      "人員資訊"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.clickUp",
+    "display_name": "ClickUp",
+    "category": "專案管理",
+    "description": "任務管理",
+    "default_type_version": null,
+    "keywords": [
+      "ClickUp",
+      "任務管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.clockify",
+    "display_name": "Clockify",
+    "category": "生產力",
+    "description": "時間追蹤",
+    "default_type_version": null,
+    "keywords": [
+      "Clockify",
+      "時間追蹤"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.cloudflare",
+    "display_name": "Cloudflare",
+    "category": "網路",
+    "description": "CDN/DNS 管理",
+    "default_type_version": null,
+    "keywords": [
+      "Cloudflare",
+      "CDN",
+      "DNS",
+      "管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.cockpit",
+    "display_name": "Cockpit",
+    "category": "CMS",
+    "description": "Headless CMS",
+    "default_type_version": null,
+    "keywords": [
+      "Cockpit",
+      "Headless",
+      "CMS"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.coda",
+    "display_name": "Coda",
+    "category": "生產力",
+    "description": "文件協作",
+    "default_type_version": null,
+    "keywords": [
+      "Coda",
+      "文件協作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.coinGecko",
+    "display_name": "CoinGecko",
+    "category": "金融",
+    "description": "加密貨幣資料",
+    "default_type_version": null,
+    "keywords": [
+      "CoinGecko",
+      "加密貨幣資料"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.contentful",
+    "display_name": "Contentful",
+    "category": "CMS",
+    "description": "Headless CMS",
+    "default_type_version": null,
+    "keywords": [
+      "Contentful",
+      "Headless",
+      "CMS"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.convertKit",
+    "display_name": "ConvertKit",
+    "category": "行銷",
+    "description": "Email 行銷",
+    "default_type_version": null,
+    "keywords": [
+      "ConvertKit",
+      "Email",
+      "行銷"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.copper",
+    "display_name": "Copper",
+    "category": "CRM",
+    "description": "Google CRM",
+    "default_type_version": null,
+    "keywords": [
+      "Copper",
+      "Google",
+      "CRM"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.cortex",
+    "display_name": "Cortex",
+    "category": "安全",
+    "description": "資安分析",
+    "default_type_version": null,
+    "keywords": [
+      "Cortex",
+      "資安分析"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.crateDb",
+    "display_name": "CrateDB",
+    "category": "資料庫",
+    "description": "分散式 SQL",
+    "default_type_version": null,
+    "keywords": [
+      "CrateDB",
+      "分散式",
+      "SQL"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.crowdDev",
+    "display_name": "crowd.dev",
+    "category": "社群",
+    "description": "開發者社群",
+    "default_type_version": null,
+    "keywords": [
+      "crowd",
+      "dev",
+      "開發者社群"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.customerIo",
+    "display_name": "Customer.io",
+    "category": "行銷",
+    "description": "客戶互動平台",
+    "default_type_version": null,
+    "keywords": [
+      "Customer",
+      "io",
+      "客戶互動平台"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.deepl",
+    "display_name": "DeepL",
+    "category": "AI",
+    "description": "翻譯服務",
+    "default_type_version": null,
+    "keywords": [
+      "DeepL",
+      "翻譯服務"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.demio",
+    "display_name": "Demio",
+    "category": "行銷",
+    "description": "網路研討會",
+    "default_type_version": null,
+    "keywords": [
+      "Demio",
+      "網路研討會"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.dhl",
+    "display_name": "DHL",
+    "category": "物流",
+    "description": "物流追蹤",
+    "default_type_version": null,
+    "keywords": [
+      "DHL",
+      "物流追蹤"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.discord",
+    "display_name": "Discord",
+    "category": "通訊",
+    "description": "Discord 訊息",
+    "default_type_version": null,
+    "keywords": [
+      "Discord",
+      "訊息"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.discourse",
+    "display_name": "Discourse",
+    "category": "社群",
+    "description": "論壇平台",
+    "default_type_version": null,
+    "keywords": [
+      "Discourse",
+      "論壇平台"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.disqus",
+    "display_name": "Disqus",
+    "category": "社群",
+    "description": "留言系統",
+    "default_type_version": null,
+    "keywords": [
+      "Disqus",
+      "留言系統"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.drift",
+    "display_name": "Drift",
+    "category": "行銷",
+    "description": "對話行銷",
+    "default_type_version": null,
+    "keywords": [
+      "Drift",
+      "對話行銷"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.dropbox",
+    "display_name": "Dropbox",
+    "category": "檔案",
+    "description": "雲端存儲",
+    "default_type_version": null,
+    "keywords": [
+      "Dropbox",
+      "雲端存儲"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.dropcontact",
+    "display_name": "Dropcontact",
+    "category": "資料",
+    "description": "Email 資料豐富",
+    "default_type_version": null,
+    "keywords": [
+      "Dropcontact",
+      "Email",
+      "資料豐富"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.eGoi",
+    "display_name": "E-goi",
+    "category": "行銷",
+    "description": "多通路行銷",
+    "default_type_version": null,
+    "keywords": [
+      "goi",
+      "多通路行銷"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.elasticsearch",
+    "display_name": "Elasticsearch",
+    "category": "資料庫",
+    "description": "搜尋引擎",
+    "default_type_version": null,
+    "keywords": [
+      "Elasticsearch",
+      "搜尋引擎"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.elasticSecurity",
+    "display_name": "Elastic Security",
+    "category": "安全",
+    "description": "資安監控",
+    "default_type_version": null,
+    "keywords": [
+      "Elastic",
+      "Security",
+      "資安監控"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.emelia",
+    "display_name": "Emelia",
+    "category": "行銷",
+    "description": "Email 外展",
+    "default_type_version": null,
+    "keywords": [
+      "Emelia",
+      "Email",
+      "外展"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.erpNext",
+    "display_name": "ERPNext",
+    "category": "ERP",
+    "description": "開源 ERP",
+    "default_type_version": null,
+    "keywords": [
+      "ERPNext",
+      "開源",
+      "ERP"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.facebookGraphApi",
+    "display_name": "Facebook Graph API",
+    "category": "社群",
+    "description": "Facebook API",
+    "default_type_version": null,
+    "keywords": [
+      "Facebook",
+      "Graph",
+      "API"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.filemaker",
+    "display_name": "FileMaker",
+    "category": "資料庫",
+    "description": "FileMaker 平台",
+    "default_type_version": null,
+    "keywords": [
+      "FileMaker",
+      "平台"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.flow",
+    "display_name": "Flow",
+    "category": "專案管理",
+    "description": "Flow 任務管理",
+    "default_type_version": null,
+    "keywords": [
+      "Flow",
+      "任務管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.freshdesk",
+    "display_name": "Freshdesk",
+    "category": "客服",
+    "description": "客服工單",
+    "default_type_version": null,
+    "keywords": [
+      "Freshdesk",
+      "客服工單"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.freshservice",
+    "display_name": "Freshservice",
+    "category": "IT",
+    "description": "IT 服務管理",
+    "default_type_version": null,
+    "keywords": [
+      "Freshservice",
+      "服務管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.freshworksCrm",
+    "display_name": "Freshworks CRM",
+    "category": "CRM",
+    "description": "Freshworks CRM",
+    "default_type_version": null,
+    "keywords": [
+      "Freshworks",
+      "CRM"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.getResponse",
+    "display_name": "GetResponse",
+    "category": "行銷",
+    "description": "Email 行銷",
+    "default_type_version": null,
+    "keywords": [
+      "GetResponse",
+      "Email",
+      "行銷"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.ghost",
+    "display_name": "Ghost",
+    "category": "CMS",
+    "description": "部落格 CMS",
+    "default_type_version": null,
+    "keywords": [
+      "Ghost",
+      "部落格",
+      "CMS"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.github",
+    "display_name": "GitHub",
+    "category": "開發",
+    "description": "GitHub API",
+    "default_type_version": null,
+    "keywords": [
+      "GitHub",
+      "API"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.gitlab",
+    "display_name": "GitLab",
+    "category": "開發",
+    "description": "GitLab API",
+    "default_type_version": null,
+    "keywords": [
+      "GitLab",
+      "API"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.gmail",
+    "display_name": "Gmail",
+    "category": "Email",
+    "description": "Gmail 操作",
+    "default_type_version": null,
+    "keywords": [
+      "Gmail",
+      "操作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.gong",
+    "display_name": "Gong",
+    "category": "銷售",
+    "description": "通話分析",
+    "default_type_version": null,
+    "keywords": [
+      "Gong",
+      "通話分析"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleAds",
+    "display_name": "Google Ads",
+    "category": "廣告",
+    "description": "Google 廣告",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Ads",
+      "廣告"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleAnalytics",
+    "display_name": "Google Analytics",
+    "category": "分析",
+    "description": "網站分析",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Analytics",
+      "網站分析"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleBigQuery",
+    "display_name": "Google BigQuery",
+    "category": "資料庫",
+    "description": "BigQuery 分析",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "BigQuery",
+      "分析"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleBooks",
+    "display_name": "Google Books",
+    "category": "工具",
+    "description": "書籍搜尋",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Books",
+      "書籍搜尋"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleBusinessProfile",
+    "display_name": "Google Business Profile",
+    "category": "行銷",
+    "description": "商家資訊",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Business",
+      "Profile",
+      "商家資訊"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleCalendar",
+    "display_name": "Google Calendar",
+    "category": "生產力",
+    "description": "行事曆",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Calendar",
+      "行事曆"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleChat",
+    "display_name": "Google Chat",
+    "category": "通訊",
+    "description": "Google Chat",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Chat"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleCloudFirestore",
+    "display_name": "Google Cloud Firestore",
+    "category": "Google",
+    "description": "Firestore 資料庫",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Cloud",
+      "Firestore",
+      "資料庫"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleCloudNaturalLanguage",
+    "display_name": "Google Cloud Natural Language",
+    "category": "Google",
+    "description": "NLP 分析",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Cloud",
+      "Natural",
+      "Language",
+      "NLP"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleCloudRealtimeDatabase",
+    "display_name": "Google Cloud Realtime Database",
+    "category": "Google",
+    "description": "即時資料庫",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Cloud",
+      "Realtime",
+      "Database",
+      "即時資料庫"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleCloudStorage",
+    "display_name": "Google Cloud Storage",
+    "category": "Google",
+    "description": "雲端存儲",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Cloud",
+      "Storage",
+      "雲端存儲"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleContacts",
+    "display_name": "Google Contacts",
+    "category": "Google",
+    "description": "聯絡人",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Contacts",
+      "聯絡人"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleDocs",
+    "display_name": "Google Docs",
+    "category": "Google",
+    "description": "文件編輯",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Docs",
+      "文件編輯"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleDrive",
+    "display_name": "Google Drive",
+    "category": "Google",
+    "description": "雲端硬碟",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Drive",
+      "雲端硬碟"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.googleGemini",
+    "display_name": "Google Gemini",
+    "category": "AI",
+    "description": "Gemini API",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Gemini",
+      "API"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googlePerspective",
+    "display_name": "Google Perspective",
+    "category": "AI",
+    "description": "內容毒性分析",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Perspective",
+      "內容毒性分析"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleSheets",
+    "display_name": "Google Sheets",
+    "category": "Google",
+    "description": "試算表",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Sheets",
+      "試算表"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleSlides",
+    "display_name": "Google Slides",
+    "category": "Google",
+    "description": "簡報",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Slides",
+      "簡報"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleTasks",
+    "display_name": "Google Tasks",
+    "category": "Google",
+    "description": "任務管理",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Tasks",
+      "任務管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.googleTranslate",
+    "display_name": "Google Translate",
+    "category": "Google",
+    "description": "翻譯",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Translate",
+      "翻譯"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.gSuiteAdmin",
+    "display_name": "Google Workspace Admin",
+    "category": "Google",
+    "description": "Workspace 管理",
+    "default_type_version": null,
+    "keywords": [
+      "Google",
+      "Workspace",
+      "Admin",
+      "管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.gotify",
+    "display_name": "Gotify",
+    "category": "通訊",
+    "description": "推播通知",
+    "default_type_version": null,
+    "keywords": [
+      "Gotify",
+      "推播通知"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.goToWebinar",
+    "display_name": "GoToWebinar",
+    "category": "行銷",
+    "description": "網路研討會",
+    "default_type_version": null,
+    "keywords": [
+      "GoToWebinar",
+      "網路研討會"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.grafana",
+    "display_name": "Grafana",
+    "category": "監控",
+    "description": "視覺化監控",
+    "default_type_version": null,
+    "keywords": [
+      "Grafana",
+      "視覺化監控"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.grist",
+    "display_name": "Grist",
+    "category": "資料庫",
+    "description": "開源試算表",
+    "default_type_version": null,
+    "keywords": [
+      "Grist",
+      "開源試算表"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.hackerNews",
+    "display_name": "Hacker News",
+    "category": "社群",
+    "description": "科技新聞",
+    "default_type_version": null,
+    "keywords": [
+      "Hacker",
+      "News",
+      "科技新聞"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.haloPsa",
+    "display_name": "HaloPSA",
+    "category": "IT",
+    "description": "IT 服務管理",
+    "default_type_version": null,
+    "keywords": [
+      "HaloPSA",
+      "服務管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.harvest",
+    "display_name": "Harvest",
+    "category": "生產力",
+    "description": "時間追蹤",
+    "default_type_version": null,
+    "keywords": [
+      "Harvest",
+      "時間追蹤"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.helpScout",
+    "display_name": "Help Scout",
+    "category": "客服",
+    "description": "客服平台",
+    "default_type_version": null,
+    "keywords": [
+      "Help",
+      "Scout",
+      "客服平台"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.highLevel",
+    "display_name": "HighLevel",
+    "category": "行銷",
+    "description": "行銷 CRM",
+    "default_type_version": null,
+    "keywords": [
+      "HighLevel",
+      "行銷",
+      "CRM"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.homeAssistant",
+    "display_name": "Home Assistant",
+    "category": "IoT",
+    "description": "智慧家居",
+    "default_type_version": null,
+    "keywords": [
+      "Home",
+      "Assistant",
+      "智慧家居"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.hubspot",
+    "display_name": "HubSpot",
+    "category": "CRM",
+    "description": "HubSpot CRM",
+    "default_type_version": null,
+    "keywords": [
+      "HubSpot",
+      "CRM"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.humanticAi",
+    "display_name": "Humantic AI",
+    "category": "AI",
+    "description": "個性分析",
+    "default_type_version": null,
+    "keywords": [
+      "Humantic",
+      "AI",
+      "個性分析"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.hunter",
+    "display_name": "Hunter",
+    "category": "資料",
+    "description": "Email 搜尋",
+    "default_type_version": null,
+    "keywords": [
+      "Hunter",
+      "Email",
+      "搜尋"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.intercom",
+    "display_name": "Intercom",
+    "category": "客服",
+    "description": "客戶訊息平台",
+    "default_type_version": null,
+    "keywords": [
+      "Intercom",
+      "客戶訊息平台"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.invoiceNinja",
+    "display_name": "Invoice Ninja",
+    "category": "金融",
+    "description": "發票管理",
+    "default_type_version": null,
+    "keywords": [
+      "Invoice",
+      "Ninja",
+      "發票管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.iterable",
+    "display_name": "Iterable",
+    "category": "行銷",
+    "description": "行銷自動化",
+    "default_type_version": null,
+    "keywords": [
+      "Iterable",
+      "行銷自動化"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.jenkins",
+    "display_name": "Jenkins",
+    "category": "DevOps",
+    "description": "CI/CD 平台",
+    "default_type_version": null,
+    "keywords": [
+      "Jenkins",
+      "CI",
+      "CD",
+      "平台"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.jinaAi",
+    "display_name": "Jina AI",
+    "category": "AI",
+    "description": "AI 搜尋/嵌入",
+    "default_type_version": null,
+    "keywords": [
+      "Jina",
+      "AI",
+      "搜尋",
+      "嵌入"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.jira",
+    "display_name": "Jira Software",
+    "category": "專案管理",
+    "description": "Jira 工單管理",
+    "default_type_version": null,
+    "keywords": [
+      "Jira",
+      "Software",
+      "工單管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.kafka",
+    "display_name": "Kafka",
+    "category": "訊息佇列",
+    "description": "Kafka 訊息",
+    "default_type_version": null,
+    "keywords": [
+      "Kafka",
+      "訊息"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.keap",
+    "display_name": "Keap",
+    "category": "CRM",
+    "description": "Keap CRM",
+    "default_type_version": null,
+    "keywords": [
+      "Keap",
+      "CRM"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.kitemaker",
+    "display_name": "Kitemaker",
+    "category": "專案管理",
+    "description": "產品開發追蹤",
+    "default_type_version": null,
+    "keywords": [
+      "Kitemaker",
+      "產品開發追蹤"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.koboToolbox",
+    "display_name": "KoboToolbox",
+    "category": "工具",
+    "description": "資料收集",
+    "default_type_version": null,
+    "keywords": [
+      "KoboToolbox",
+      "資料收集"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.lemlist",
+    "display_name": "Lemlist",
+    "category": "行銷",
+    "description": "Email 外展",
+    "default_type_version": null,
+    "keywords": [
+      "Lemlist",
+      "Email",
+      "外展"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.line",
+    "display_name": "Line",
+    "category": "通訊",
+    "description": "Line 訊息",
+    "default_type_version": null,
+    "keywords": [
+      "Line",
+      "訊息"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.linear",
+    "display_name": "Linear",
+    "category": "專案管理",
+    "description": "Issue 追蹤",
+    "default_type_version": null,
+    "keywords": [
+      "Linear",
+      "Issue",
+      "追蹤"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.lingvaNex",
+    "display_name": "LingvaNex",
+    "category": "AI",
+    "description": "翻譯 API",
+    "default_type_version": null,
+    "keywords": [
+      "LingvaNex",
+      "翻譯",
+      "API"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.linkedIn",
+    "display_name": "LinkedIn",
+    "category": "社群",
+    "description": "LinkedIn 操作",
+    "default_type_version": null,
+    "keywords": [
+      "LinkedIn",
+      "操作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.loneScale",
+    "display_name": "LoneScale",
+    "category": "銷售",
+    "description": "銷售情報",
+    "default_type_version": null,
+    "keywords": [
+      "LoneScale",
+      "銷售情報"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.magento2",
+    "display_name": "Magento 2",
+    "category": "電商",
+    "description": "電商平台",
+    "default_type_version": null,
+    "keywords": [
+      "Magento",
+      "電商平台"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.mailcheck",
+    "display_name": "Mailcheck",
+    "category": "工具",
+    "description": "Email 驗證",
+    "default_type_version": null,
+    "keywords": [
+      "Mailcheck",
+      "Email",
+      "驗證"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.mailchimp",
+    "display_name": "Mailchimp",
+    "category": "行銷",
+    "description": "Email 行銷",
+    "default_type_version": null,
+    "keywords": [
+      "Mailchimp",
+      "Email",
+      "行銷"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.mailerLite",
+    "display_name": "MailerLite",
+    "category": "行銷",
+    "description": "Email 行銷",
+    "default_type_version": null,
+    "keywords": [
+      "MailerLite",
+      "Email",
+      "行銷"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.mailgun",
+    "display_name": "Mailgun",
+    "category": "Email",
+    "description": "Email API",
+    "default_type_version": null,
+    "keywords": [
+      "Mailgun",
+      "Email",
+      "API"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.mailjet",
+    "display_name": "Mailjet",
+    "category": "Email",
+    "description": "Email API",
+    "default_type_version": null,
+    "keywords": [
+      "Mailjet",
+      "Email",
+      "API"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.mandrill",
+    "display_name": "Mandrill",
+    "category": "Email",
+    "description": "交易 Email",
+    "default_type_version": null,
+    "keywords": [
+      "Mandrill",
+      "交易",
+      "Email"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.marketstack",
+    "display_name": "marketstack",
+    "category": "金融",
+    "description": "股市資料",
+    "default_type_version": null,
+    "keywords": [
+      "marketstack",
+      "股市資料"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.matrix",
+    "display_name": "Matrix",
+    "category": "通訊",
+    "description": "Matrix 通訊",
+    "default_type_version": null,
+    "keywords": [
+      "Matrix",
+      "通訊"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.mattermost",
+    "display_name": "Mattermost",
+    "category": "通訊",
+    "description": "團隊協作",
+    "default_type_version": null,
+    "keywords": [
+      "Mattermost",
+      "團隊協作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.mautic",
+    "display_name": "Mautic",
+    "category": "行銷",
+    "description": "行銷自動化",
+    "default_type_version": null,
+    "keywords": [
+      "Mautic",
+      "行銷自動化"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.medium",
+    "display_name": "Medium",
+    "category": "社群",
+    "description": "部落格平台",
+    "default_type_version": null,
+    "keywords": [
+      "Medium",
+      "部落格平台"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.messageBird",
+    "display_name": "MessageBird",
+    "category": "通訊",
+    "description": "簡訊/語音",
+    "default_type_version": null,
+    "keywords": [
+      "MessageBird",
+      "簡訊",
+      "語音"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.metabase",
+    "display_name": "Metabase",
+    "category": "分析",
+    "description": "BI 分析",
+    "default_type_version": null,
+    "keywords": [
+      "Metabase",
+      "BI",
+      "分析"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.microsoftDynamicsCrm",
+    "display_name": "Microsoft Dynamics CRM",
+    "category": "CRM",
+    "description": "MS Dynamics",
+    "default_type_version": null,
+    "keywords": [
+      "Microsoft",
+      "Dynamics",
+      "CRM",
+      "MS"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.microsoftEntra",
+    "display_name": "Microsoft Entra ID",
+    "category": "安全",
+    "description": "身分管理",
+    "default_type_version": null,
+    "keywords": [
+      "Microsoft",
+      "Entra",
+      "ID",
+      "身分管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.microsoftExcel",
+    "display_name": "Microsoft Excel 365",
+    "category": "Microsoft",
+    "description": "Excel Online",
+    "default_type_version": null,
+    "keywords": [
+      "Microsoft",
+      "Excel",
+      "Online"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.microsoftGraphSecurity",
+    "display_name": "Microsoft Graph Security",
+    "category": "安全",
+    "description": "MS 資安 API",
+    "default_type_version": null,
+    "keywords": [
+      "Microsoft",
+      "Graph",
+      "Security",
+      "MS",
+      "資安"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.microsoftOneDrive",
+    "display_name": "Microsoft OneDrive",
+    "category": "Microsoft",
+    "description": "雲端硬碟",
+    "default_type_version": null,
+    "keywords": [
+      "Microsoft",
+      "OneDrive",
+      "雲端硬碟"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.microsoftOutlook",
+    "display_name": "Microsoft Outlook",
+    "category": "Microsoft",
+    "description": "Email",
+    "default_type_version": null,
+    "keywords": [
+      "Microsoft",
+      "Outlook",
+      "Email"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.microsoftSharePoint",
+    "display_name": "Microsoft SharePoint",
+    "category": "Microsoft",
+    "description": "SharePoint",
+    "default_type_version": null,
+    "keywords": [
+      "Microsoft",
+      "SharePoint"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.microsoftSql",
+    "display_name": "Microsoft SQL",
+    "category": "資料庫",
+    "description": "MS SQL Server",
+    "default_type_version": null,
+    "keywords": [
+      "Microsoft",
+      "SQL",
+      "MS",
+      "Server"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.microsoftTeams",
+    "display_name": "Microsoft Teams",
+    "category": "Microsoft",
+    "description": "Teams 通訊",
+    "default_type_version": null,
+    "keywords": [
+      "Microsoft",
+      "Teams",
+      "通訊"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.microsoftToDo",
+    "display_name": "Microsoft To Do",
+    "category": "Microsoft",
+    "description": "待辦事項",
+    "default_type_version": null,
+    "keywords": [
+      "Microsoft",
+      "Do",
+      "待辦事項"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.mindee",
+    "display_name": "Mindee",
+    "category": "AI",
+    "description": "文件 OCR",
+    "default_type_version": null,
+    "keywords": [
+      "Mindee",
+      "文件",
+      "OCR"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.misp",
+    "display_name": "MISP",
+    "category": "安全",
+    "description": "威脅情報",
+    "default_type_version": null,
+    "keywords": [
+      "MISP",
+      "威脅情報"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.mistralAi",
+    "display_name": "Mistral AI",
+    "category": "AI",
+    "description": "Mistral AI API",
+    "default_type_version": null,
+    "keywords": [
+      "Mistral",
+      "AI",
+      "API"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.mocean",
+    "display_name": "Mocean",
+    "category": "通訊",
+    "description": "簡訊服務",
+    "default_type_version": null,
+    "keywords": [
+      "Mocean",
+      "簡訊服務"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.mondayCom",
+    "display_name": "monday.com",
+    "category": "專案管理",
+    "description": "工作管理",
+    "default_type_version": null,
+    "keywords": [
+      "monday",
+      "com",
+      "工作管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.mongoDb",
+    "display_name": "MongoDB",
+    "category": "資料庫",
+    "description": "MongoDB",
+    "default_type_version": null,
+    "keywords": [
+      "MongoDB"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.monicaCrm",
+    "display_name": "Monica CRM",
+    "category": "CRM",
+    "description": "個人 CRM",
+    "default_type_version": null,
+    "keywords": [
+      "Monica",
+      "CRM",
+      "個人"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.mqtt",
+    "display_name": "MQTT",
+    "category": "IoT",
+    "description": "MQTT 訊息",
+    "default_type_version": null,
+    "keywords": [
+      "MQTT",
+      "訊息"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.msg91",
+    "display_name": "MSG91",
+    "category": "通訊",
+    "description": "簡訊服務",
+    "default_type_version": null,
+    "keywords": [
+      "MSG91",
+      "簡訊服務"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.mySql",
+    "display_name": "MySQL",
+    "category": "資料庫",
+    "description": "MySQL 操作",
+    "default_type_version": null,
+    "keywords": [
+      "MySQL",
+      "操作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.n8nTrainingCustomerDatastore",
+    "display_name": "Customer Datastore (Training)",
+    "category": "Training",
+    "description": "訓練用資料",
+    "default_type_version": null,
+    "keywords": [
+      "Customer",
+      "Datastore",
+      "Training",
+      "訓練用資料"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.n8nTrainingCustomerMessenger",
+    "display_name": "Customer Messenger (Training)",
+    "category": "Training",
+    "description": "訓練用訊息",
+    "default_type_version": null,
+    "keywords": [
+      "Customer",
+      "Messenger",
+      "Training",
+      "訓練用訊息"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.nasa",
+    "display_name": "NASA",
+    "category": "API",
+    "description": "NASA 資料",
+    "default_type_version": null,
+    "keywords": [
+      "NASA",
+      "資料"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.netlify",
+    "display_name": "Netlify",
+    "category": "開發",
+    "description": "部署平台",
+    "default_type_version": null,
+    "keywords": [
+      "Netlify",
+      "部署平台"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.netscalerAdc",
+    "display_name": "Netscaler ADC",
+    "category": "網路",
+    "description": "負載均衡",
+    "default_type_version": null,
+    "keywords": [
+      "Netscaler",
+      "ADC",
+      "負載均衡"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.nextcloud",
+    "display_name": "Nextcloud",
+    "category": "檔案",
+    "description": "私有雲",
+    "default_type_version": null,
+    "keywords": [
+      "Nextcloud",
+      "私有雲"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.nocoDB",
+    "display_name": "NocoDB",
+    "category": "資料庫",
+    "description": "開源 Airtable",
+    "default_type_version": null,
+    "keywords": [
+      "NocoDB",
+      "開源",
+      "Airtable"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.notion",
+    "display_name": "Notion",
+    "category": "生產力",
+    "description": "Notion 操作",
+    "default_type_version": null,
+    "keywords": [
+      "Notion",
+      "操作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.npm",
+    "display_name": "npm",
+    "category": "開發",
+    "description": "npm 套件查詢",
+    "default_type_version": null,
+    "keywords": [
+      "npm",
+      "套件查詢"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.odoo",
+    "display_name": "Odoo",
+    "category": "ERP",
+    "description": "開源 ERP",
+    "default_type_version": null,
+    "keywords": [
+      "Odoo",
+      "開源",
+      "ERP"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.okta",
+    "display_name": "Okta",
+    "category": "安全",
+    "description": "身分管理",
+    "default_type_version": null,
+    "keywords": [
+      "Okta",
+      "身分管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.oneSimpleApi",
+    "display_name": "One Simple API",
+    "category": "API",
+    "description": "多功能 API",
+    "default_type_version": null,
+    "keywords": [
+      "One",
+      "Simple",
+      "API",
+      "多功能"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.onfleet",
+    "display_name": "Onfleet",
+    "category": "物流",
+    "description": "配送管理",
+    "default_type_version": null,
+    "keywords": [
+      "Onfleet",
+      "配送管理"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.openAi",
+    "display_name": "OpenAI",
+    "category": "AI",
+    "description": "OpenAI API 操作",
+    "default_type_version": null,
+    "keywords": [
+      "OpenAI",
+      "API",
+      "操作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.openThesaurus",
+    "display_name": "OpenThesaurus",
+    "category": "工具",
+    "description": "同義詞查詢",
+    "default_type_version": null,
+    "keywords": [
+      "OpenThesaurus",
+      "同義詞查詢"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.openWeatherMap",
+    "display_name": "OpenWeatherMap",
+    "category": "API",
+    "description": "天氣資料",
+    "default_type_version": null,
+    "keywords": [
+      "OpenWeatherMap",
+      "天氣資料"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.oracleDb",
+    "display_name": "Oracle Database",
+    "category": "資料庫",
+    "description": "Oracle DB",
+    "default_type_version": null,
+    "keywords": [
+      "Oracle",
+      "Database",
+      "DB"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.oura",
+    "display_name": "Oura",
+    "category": "健康",
+    "description": "Oura Ring 資料",
+    "default_type_version": null,
+    "keywords": [
+      "Oura",
+      "Ring",
+      "資料"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.paddle",
+    "display_name": "Paddle",
+    "category": "金融",
+    "description": "訂閱計費",
+    "default_type_version": null,
+    "keywords": [
+      "Paddle",
+      "訂閱計費"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.pagerDuty",
+    "display_name": "PagerDuty",
+    "category": "DevOps",
+    "description": "事件管理",
+    "default_type_version": null,
+    "keywords": [
+      "PagerDuty",
+      "事件管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.payPal",
+    "display_name": "PayPal",
+    "category": "金融",
+    "description": "支付服務",
+    "default_type_version": null,
+    "keywords": [
+      "PayPal",
+      "支付服務"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.peekalink",
+    "display_name": "Peekalink",
+    "category": "工具",
+    "description": "連結預覽",
+    "default_type_version": null,
+    "keywords": [
+      "Peekalink",
+      "連結預覽"
+    ]
+  },
+  {
+    "type": "@n8n/n8n-nodes-langchain.perplexity",
+    "display_name": "Perplexity",
+    "category": "AI",
+    "description": "Perplexity AI",
+    "default_type_version": null,
+    "keywords": [
+      "Perplexity",
+      "AI"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.phantomBuster",
+    "display_name": "PhantomBuster",
+    "category": "行銷",
+    "description": "自動化爬蟲",
+    "default_type_version": null,
+    "keywords": [
+      "PhantomBuster",
+      "自動化爬蟲"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.philipsHue",
+    "display_name": "Philips Hue",
+    "category": "IoT",
+    "description": "智慧燈控",
+    "default_type_version": null,
+    "keywords": [
+      "Philips",
+      "Hue",
+      "智慧燈控"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.pipedrive",
+    "display_name": "Pipedrive",
+    "category": "CRM",
+    "description": "銷售 CRM",
+    "default_type_version": null,
+    "keywords": [
+      "Pipedrive",
+      "銷售",
+      "CRM"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.plivo",
+    "display_name": "Plivo",
+    "category": "通訊",
+    "description": "語音/簡訊",
+    "default_type_version": null,
+    "keywords": [
+      "Plivo",
+      "語音",
+      "簡訊"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.postBin",
+    "display_name": "PostBin",
+    "category": "開發",
+    "description": "HTTP 除錯",
+    "default_type_version": null,
+    "keywords": [
+      "PostBin",
+      "HTTP",
+      "除錯"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.postgres",
+    "display_name": "Postgres",
+    "category": "資料庫",
+    "description": "PostgreSQL",
+    "default_type_version": null,
+    "keywords": [
+      "Postgres",
+      "PostgreSQL"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.postHog",
+    "display_name": "PostHog",
+    "category": "分析",
+    "description": "產品分析",
+    "default_type_version": null,
+    "keywords": [
+      "PostHog",
+      "產品分析"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.profitWell",
+    "display_name": "ProfitWell",
+    "category": "金融",
+    "description": "訂閱指標",
+    "default_type_version": null,
+    "keywords": [
+      "ProfitWell",
+      "訂閱指標"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.pushbullet",
+    "display_name": "Pushbullet",
+    "category": "通訊",
+    "description": "推播通知",
+    "default_type_version": null,
+    "keywords": [
+      "Pushbullet",
+      "推播通知"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.pushcut",
+    "display_name": "Pushcut",
+    "category": "通訊",
+    "description": "iOS 推播",
+    "default_type_version": null,
+    "keywords": [
+      "Pushcut",
+      "iOS",
+      "推播"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.pushover",
+    "display_name": "Pushover",
+    "category": "通訊",
+    "description": "推播通知",
+    "default_type_version": null,
+    "keywords": [
+      "Pushover",
+      "推播通知"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.questDb",
+    "display_name": "QuestDB",
+    "category": "資料庫",
+    "description": "時序資料庫",
+    "default_type_version": null,
+    "keywords": [
+      "QuestDB",
+      "時序資料庫"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.quickBase",
+    "display_name": "Quick Base",
+    "category": "資料庫",
+    "description": "低程式碼平台",
+    "default_type_version": null,
+    "keywords": [
+      "Quick",
+      "Base",
+      "低程式碼平台"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.quickbooks",
+    "display_name": "QuickBooks Online",
+    "category": "金融",
+    "description": "會計軟體",
+    "default_type_version": null,
+    "keywords": [
+      "QuickBooks",
+      "Online",
+      "會計軟體"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.quickChart",
+    "display_name": "QuickChart",
+    "category": "工具",
+    "description": "圖表產生",
+    "default_type_version": null,
+    "keywords": [
+      "QuickChart",
+      "圖表產生"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.rabbitmq",
+    "display_name": "RabbitMQ",
+    "category": "訊息佇列",
+    "description": "RabbitMQ",
+    "default_type_version": null,
+    "keywords": [
+      "RabbitMQ"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.raindrop",
+    "display_name": "Raindrop",
+    "category": "生產力",
+    "description": "書籤管理",
+    "default_type_version": null,
+    "keywords": [
+      "Raindrop",
+      "書籤管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.reddit",
+    "display_name": "Reddit",
+    "category": "社群",
+    "description": "Reddit API",
+    "default_type_version": null,
+    "keywords": [
+      "Reddit",
+      "API"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.redis",
+    "display_name": "Redis",
+    "category": "資料庫",
+    "description": "Redis 操作",
+    "default_type_version": null,
+    "keywords": [
+      "Redis",
+      "操作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.rocketchat",
+    "display_name": "Rocket.Chat",
+    "category": "通訊",
+    "description": "團隊聊天",
+    "default_type_version": null,
+    "keywords": [
+      "Rocket",
+      "Chat",
+      "團隊聊天"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.rundeck",
+    "display_name": "Rundeck",
+    "category": "DevOps",
+    "description": "作業排程",
+    "default_type_version": null,
+    "keywords": [
+      "Rundeck",
+      "作業排程"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.s3",
+    "display_name": "S3",
+    "category": "檔案",
+    "description": "S3 相容存儲",
+    "default_type_version": null,
+    "keywords": [
+      "S3",
+      "相容存儲"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.salesforce",
+    "display_name": "Salesforce",
+    "category": "CRM",
+    "description": "Salesforce",
+    "default_type_version": null,
+    "keywords": [
+      "Salesforce"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.salesmate",
+    "display_name": "Salesmate",
+    "category": "CRM",
+    "description": "Salesmate",
+    "default_type_version": null,
+    "keywords": [
+      "Salesmate"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.seaTable",
+    "display_name": "SeaTable",
+    "category": "資料庫",
+    "description": "SeaTable",
+    "default_type_version": null,
+    "keywords": [
+      "SeaTable"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.securityScorecard",
+    "display_name": "SecurityScorecard",
+    "category": "安全",
+    "description": "資安評分",
+    "default_type_version": null,
+    "keywords": [
+      "SecurityScorecard",
+      "資安評分"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.segment",
+    "display_name": "Segment",
+    "category": "分析",
+    "description": "資料分析平台",
+    "default_type_version": null,
+    "keywords": [
+      "Segment",
+      "資料分析平台"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.sendGrid",
+    "display_name": "SendGrid",
+    "category": "Email",
+    "description": "Email API",
+    "default_type_version": null,
+    "keywords": [
+      "SendGrid",
+      "Email",
+      "API"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.sendy",
+    "display_name": "Sendy",
+    "category": "行銷",
+    "description": "Email 行銷",
+    "default_type_version": null,
+    "keywords": [
+      "Sendy",
+      "Email",
+      "行銷"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.sentryIo",
+    "display_name": "Sentry.io",
+    "category": "DevOps",
+    "description": "錯誤追蹤",
+    "default_type_version": null,
+    "keywords": [
+      "Sentry",
+      "io",
+      "錯誤追蹤"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.serviceNow",
+    "display_name": "ServiceNow",
+    "category": "IT",
+    "description": "ITSM 平台",
+    "default_type_version": null,
+    "keywords": [
+      "ServiceNow",
+      "ITSM",
+      "平台"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.sms77",
+    "display_name": "seven",
+    "category": "通訊",
+    "description": "簡訊服務",
+    "default_type_version": null,
+    "keywords": [
+      "seven",
+      "簡訊服務"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.shopify",
+    "display_name": "Shopify",
+    "category": "電商",
+    "description": "Shopify 電商",
+    "default_type_version": null,
+    "keywords": [
+      "Shopify",
+      "電商"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.signl4",
+    "display_name": "SIGNL4",
+    "category": "DevOps",
+    "description": "行動告警",
+    "default_type_version": null,
+    "keywords": [
+      "SIGNL4",
+      "行動告警"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.slack",
+    "display_name": "Slack",
+    "category": "通訊",
+    "description": "Slack 訊息",
+    "default_type_version": null,
+    "keywords": [
+      "Slack",
+      "訊息"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.snowflake",
+    "display_name": "Snowflake",
+    "category": "資料庫",
+    "description": "雲端資料倉儲",
+    "default_type_version": null,
+    "keywords": [
+      "Snowflake",
+      "雲端資料倉儲"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.splunk",
+    "display_name": "Splunk",
+    "category": "監控",
+    "description": "日誌分析",
+    "default_type_version": null,
+    "keywords": [
+      "Splunk",
+      "日誌分析"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.spotify",
+    "display_name": "Spotify",
+    "category": "娛樂",
+    "description": "Spotify API",
+    "default_type_version": null,
+    "keywords": [
+      "Spotify",
+      "API"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.stackby",
+    "display_name": "Stackby",
+    "category": "資料庫",
+    "description": "試算表資料庫",
+    "default_type_version": null,
+    "keywords": [
+      "Stackby",
+      "試算表資料庫"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.storyblok",
+    "display_name": "Storyblok",
+    "category": "CMS",
+    "description": "Headless CMS",
+    "default_type_version": null,
+    "keywords": [
+      "Storyblok",
+      "Headless",
+      "CMS"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.strapi",
+    "display_name": "Strapi",
+    "category": "CMS",
+    "description": "Headless CMS",
+    "default_type_version": null,
+    "keywords": [
+      "Strapi",
+      "Headless",
+      "CMS"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.strava",
+    "display_name": "Strava",
+    "category": "健康",
+    "description": "運動追蹤",
+    "default_type_version": null,
+    "keywords": [
+      "Strava",
+      "運動追蹤"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.stripe",
+    "display_name": "Stripe",
+    "category": "金融",
+    "description": "支付平台",
+    "default_type_version": null,
+    "keywords": [
+      "Stripe",
+      "支付平台"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.supabase",
+    "display_name": "Supabase",
+    "category": "資料庫",
+    "description": "開源 Firebase",
+    "default_type_version": null,
+    "keywords": [
+      "Supabase",
+      "開源",
+      "Firebase"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.syncroMsp",
+    "display_name": "SyncroMSP",
+    "category": "IT",
+    "description": "MSP 管理",
+    "default_type_version": null,
+    "keywords": [
+      "SyncroMSP",
+      "MSP",
+      "管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.taiga",
+    "display_name": "Taiga",
+    "category": "專案管理",
+    "description": "敏捷專案管理",
+    "default_type_version": null,
+    "keywords": [
+      "Taiga",
+      "敏捷專案管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.tapfiliate",
+    "display_name": "Tapfiliate",
+    "category": "行銷",
+    "description": "聯盟行銷",
+    "default_type_version": null,
+    "keywords": [
+      "Tapfiliate",
+      "聯盟行銷"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.telegram",
+    "display_name": "Telegram",
+    "category": "通訊",
+    "description": "Telegram Bot",
+    "default_type_version": null,
+    "keywords": [
+      "Telegram",
+      "Bot"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.theHive",
+    "display_name": "TheHive",
+    "category": "安全",
+    "description": "資安事件管理",
+    "default_type_version": null,
+    "keywords": [
+      "TheHive",
+      "資安事件管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.theHive5",
+    "display_name": "TheHive 5",
+    "category": "安全",
+    "description": "TheHive 5",
+    "default_type_version": null,
+    "keywords": [
+      "TheHive"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.timescaleDb",
+    "display_name": "TimescaleDB",
+    "category": "資料庫",
+    "description": "時序資料庫",
+    "default_type_version": null,
+    "keywords": [
+      "TimescaleDB",
+      "時序資料庫"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.todoist",
+    "display_name": "Todoist",
+    "category": "生產力",
+    "description": "待辦事項",
+    "default_type_version": null,
+    "keywords": [
+      "Todoist",
+      "待辦事項"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.travisCi",
+    "display_name": "Travis CI",
+    "category": "DevOps",
+    "description": "CI/CD",
+    "default_type_version": null,
+    "keywords": [
+      "Travis",
+      "CI",
+      "CD"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.trello",
+    "display_name": "Trello",
+    "category": "專案管理",
+    "description": "看板管理",
+    "default_type_version": null,
+    "keywords": [
+      "Trello",
+      "看板管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.twake",
+    "display_name": "Twake",
+    "category": "通訊",
+    "description": "團隊協作",
+    "default_type_version": null,
+    "keywords": [
+      "Twake",
+      "團隊協作"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.twilio",
+    "display_name": "Twilio",
+    "category": "通訊",
+    "description": "語音/簡訊",
+    "default_type_version": null,
+    "keywords": [
+      "Twilio",
+      "語音",
+      "簡訊"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.twist",
+    "display_name": "Twist",
+    "category": "通訊",
+    "description": "團隊通訊",
+    "default_type_version": null,
+    "keywords": [
+      "Twist",
+      "團隊通訊"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.unleashedSoftware",
+    "display_name": "Unleashed Software",
+    "category": "ERP",
+    "description": "庫存管理",
+    "default_type_version": null,
+    "keywords": [
+      "Unleashed",
+      "Software",
+      "庫存管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.upLead",
+    "display_name": "UpLead",
+    "category": "銷售",
+    "description": "潛客資料",
+    "default_type_version": null,
+    "keywords": [
+      "UpLead",
+      "潛客資料"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.uproc",
+    "display_name": "uProc",
+    "category": "資料",
+    "description": "資料處理",
+    "default_type_version": null,
+    "keywords": [
+      "uProc",
+      "資料處理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.uptimeRobot",
+    "display_name": "UptimeRobot",
+    "category": "監控",
+    "description": "網站監控",
+    "default_type_version": null,
+    "keywords": [
+      "UptimeRobot",
+      "網站監控"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.urlScanIo",
+    "display_name": "urlscan.io",
+    "category": "安全",
+    "description": "URL 掃描",
+    "default_type_version": null,
+    "keywords": [
+      "urlscan",
+      "io",
+      "URL",
+      "掃描"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.venafiTlsProtectCloud",
+    "display_name": "Venafi TLS Protect Cloud",
+    "category": "安全",
+    "description": "TLS 憑證管理",
+    "default_type_version": null,
+    "keywords": [
+      "Venafi",
+      "TLS",
+      "Protect",
+      "Cloud",
+      "憑證管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.venafiTlsProtectDatacenter",
+    "display_name": "Venafi TLS Protect Datacenter",
+    "category": "安全",
+    "description": "TLS 憑證管理",
+    "default_type_version": null,
+    "keywords": [
+      "Venafi",
+      "TLS",
+      "Protect",
+      "Datacenter",
+      "憑證管理"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.vero",
+    "display_name": "Vero",
+    "category": "行銷",
+    "description": "行為 Email",
+    "default_type_version": null,
+    "keywords": [
+      "Vero",
+      "行為",
+      "Email"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.vonage",
+    "display_name": "Vonage",
+    "category": "通訊",
+    "description": "通訊 API",
+    "default_type_version": null,
+    "keywords": [
+      "Vonage",
+      "通訊",
+      "API"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.webflow",
+    "display_name": "Webflow",
+    "category": "開發",
+    "description": "網站建構",
+    "default_type_version": null,
+    "keywords": [
+      "Webflow",
+      "網站建構"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.wekan",
+    "display_name": "Wekan",
+    "category": "專案管理",
+    "description": "開源看板",
+    "default_type_version": null,
+    "keywords": [
+      "Wekan",
+      "開源看板"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.whatsApp",
+    "display_name": "WhatsApp Business Cloud",
+    "category": "通訊",
+    "description": "WhatsApp API",
+    "default_type_version": null,
+    "keywords": [
+      "WhatsApp",
+      "Business",
+      "Cloud",
+      "API"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.wise",
+    "display_name": "Wise",
+    "category": "金融",
+    "description": "國際匯款",
+    "default_type_version": null,
+    "keywords": [
+      "Wise",
+      "國際匯款"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.wooCommerce",
+    "display_name": "WooCommerce",
+    "category": "電商",
+    "description": "WooCommerce",
+    "default_type_version": null,
+    "keywords": [
+      "WooCommerce"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.worPress",
+    "display_name": "WordPress",
+    "category": "CMS",
+    "description": "WordPress API",
+    "default_type_version": null,
+    "keywords": [
+      "WordPress",
+      "API"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.twitter",
+    "display_name": "X (Formerly Twitter)",
+    "category": "社群",
+    "description": "X/Twitter API",
+    "default_type_version": null,
+    "keywords": [
+      "Formerly",
+      "Twitter",
+      "API"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.xero",
+    "display_name": "Xero",
+    "category": "金融",
+    "description": "會計軟體",
+    "default_type_version": null,
+    "keywords": [
+      "Xero",
+      "會計軟體"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.yourls",
+    "display_name": "Yourls",
+    "category": "工具",
+    "description": "短網址",
+    "default_type_version": null,
+    "keywords": [
+      "Yourls",
+      "短網址"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.youTube",
+    "display_name": "YouTube",
+    "category": "社群",
+    "description": "YouTube API",
+    "default_type_version": null,
+    "keywords": [
+      "YouTube",
+      "API"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.zammad",
+    "display_name": "Zammad",
+    "category": "客服",
+    "description": "客服工單",
+    "default_type_version": null,
+    "keywords": [
+      "Zammad",
+      "客服工單"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.zendesk",
+    "display_name": "Zendesk",
+    "category": "客服",
+    "description": "Zendesk 客服",
+    "default_type_version": null,
+    "keywords": [
+      "Zendesk",
+      "客服"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.zohoCrm",
+    "display_name": "Zoho CRM",
+    "category": "CRM",
+    "description": "Zoho CRM",
+    "default_type_version": null,
+    "keywords": [
+      "Zoho",
+      "CRM"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.zoom",
+    "display_name": "Zoom",
+    "category": "通訊",
+    "description": "Zoom 視訊",
+    "default_type_version": null,
+    "keywords": [
+      "Zoom",
+      "視訊"
+    ]
+  },
+  {
+    "type": "n8n-nodes-base.zulip",
+    "display_name": "Zulip",
+    "category": "通訊",
+    "description": "Zulip 聊天",
+    "default_type_version": null,
+    "keywords": [
+      "Zulip",
+      "聊天"
+    ]
+  }
+]

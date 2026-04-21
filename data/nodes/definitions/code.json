@@ -1,0 +1,69 @@
+{
+  "type": "n8n-nodes-base.code",
+  "display_name": "Code",
+  "description": "Execute custom JavaScript or Python code to transform data. Full access to input items and built-in helpers.",
+  "category": "Core",
+  "type_version": 2.0,
+  "parameters": [
+    {
+      "name": "mode",
+      "display_name": "Mode",
+      "type": "options",
+      "required": true,
+      "default": "runOnceForAllItems",
+      "description": "Whether to run once for all items or once per item",
+      "options": [
+        {
+          "name": "Run Once for All Items",
+          "value": "runOnceForAllItems"
+        },
+        {
+          "name": "Run Once for Each Item",
+          "value": "runOnceForEachItem"
+        }
+      ]
+    },
+    {
+      "name": "language",
+      "display_name": "Language",
+      "type": "options",
+      "required": true,
+      "default": "javaScript",
+      "description": "The programming language to use",
+      "options": [
+        {
+          "name": "JavaScript",
+          "value": "javaScript"
+        },
+        {
+          "name": "Python",
+          "value": "python"
+        }
+      ]
+    },
+    {
+      "name": "jsCode",
+      "display_name": "JavaScript Code",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "description": "The JavaScript code to execute"
+    },
+    {
+      "name": "pythonCode",
+      "display_name": "Python Code",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "description": "The Python code to execute"
+    }
+  ],
+  "credentials": [],
+  "inputs": [
+    "main"
+  ],
+  "outputs": [
+    "main"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

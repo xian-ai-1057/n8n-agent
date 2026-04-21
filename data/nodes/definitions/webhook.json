@@ -1,0 +1,79 @@
+{
+  "type": "n8n-nodes-base.webhook",
+  "display_name": "Webhook",
+  "description": "Starts the workflow when a webhook URL is called. Listens for incoming HTTP requests and triggers execution.",
+  "category": "Core",
+  "type_version": 2.0,
+  "parameters": [
+    {
+      "name": "httpMethod",
+      "display_name": "HTTP Method",
+      "type": "options",
+      "required": true,
+      "default": "GET",
+      "description": "The HTTP method to listen for",
+      "options": [
+        {
+          "name": "DELETE",
+          "value": "DELETE"
+        },
+        {
+          "name": "GET",
+          "value": "GET"
+        },
+        {
+          "name": "HEAD",
+          "value": "HEAD"
+        },
+        {
+          "name": "PATCH",
+          "value": "PATCH"
+        },
+        {
+          "name": "POST",
+          "value": "POST"
+        },
+        {
+          "name": "PUT",
+          "value": "PUT"
+        }
+      ]
+    },
+    {
+      "name": "path",
+      "display_name": "Path",
+      "type": "string",
+      "required": true,
+      "default": "",
+      "description": "The path to listen on"
+    },
+    {
+      "name": "responseMode",
+      "display_name": "Respond",
+      "type": "options",
+      "required": true,
+      "default": "onReceived",
+      "description": "When to respond to the webhook",
+      "options": [
+        {
+          "name": "Immediately",
+          "value": "onReceived"
+        },
+        {
+          "name": "When Last Node Finishes",
+          "value": "lastNode"
+        },
+        {
+          "name": "Using Respond to Webhook Node",
+          "value": "responseNode"
+        }
+      ]
+    }
+  ],
+  "credentials": [],
+  "inputs": [],
+  "outputs": [
+    "main"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

@@ -1,0 +1,99 @@
+{
+  "type": "n8n-nodes-base.gmail",
+  "display_name": "Gmail",
+  "description": "Send, read, and manage emails using Gmail. Supports labels, drafts, and attachments.",
+  "category": "Communication",
+  "type_version": 2.1,
+  "parameters": [
+    {
+      "name": "resource",
+      "display_name": "Resource",
+      "type": "options",
+      "required": true,
+      "default": "message",
+      "description": "The resource to operate on",
+      "options": [
+        {
+          "name": "Draft",
+          "value": "draft"
+        },
+        {
+          "name": "Label",
+          "value": "label"
+        },
+        {
+          "name": "Message",
+          "value": "message"
+        },
+        {
+          "name": "Thread",
+          "value": "thread"
+        }
+      ]
+    },
+    {
+      "name": "operation",
+      "display_name": "Operation",
+      "type": "options",
+      "required": true,
+      "default": "send",
+      "description": "The operation to perform",
+      "options": [
+        {
+          "name": "Send",
+          "value": "send"
+        },
+        {
+          "name": "Reply",
+          "value": "reply"
+        },
+        {
+          "name": "Get",
+          "value": "get"
+        },
+        {
+          "name": "Get Many",
+          "value": "getAll"
+        },
+        {
+          "name": "Delete",
+          "value": "delete"
+        }
+      ]
+    },
+    {
+      "name": "sendTo",
+      "display_name": "To",
+      "type": "string",
+      "required": true,
+      "default": "",
+      "description": "The email address of the recipient"
+    },
+    {
+      "name": "subject",
+      "display_name": "Subject",
+      "type": "string",
+      "required": true,
+      "default": "",
+      "description": "The subject line of the email"
+    },
+    {
+      "name": "message",
+      "display_name": "Message",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "description": "The HTML or plain text content of the email"
+    }
+  ],
+  "credentials": [
+    "gmailOAuth2"
+  ],
+  "inputs": [
+    "main"
+  ],
+  "outputs": [
+    "main"
+  ],
+  "_source": "ported from 99_Archive/n8n_Agent"
+}

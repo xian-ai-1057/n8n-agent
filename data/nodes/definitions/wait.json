@@ -1,0 +1,49 @@
+{
+  "type": "n8n-nodes-base.wait",
+  "display_name": "Wait",
+  "description": "Pause the workflow for a fixed amount of time or until a webhook resumes it.",
+  "category": "Core",
+  "type_version": 1.1,
+  "parameters": [
+    {
+      "name": "resume",
+      "display_name": "Resume",
+      "type": "options",
+      "required": true,
+      "default": "timeInterval",
+      "description": "How to resume execution",
+      "options": [
+        {"name": "After Time Interval", "value": "timeInterval"},
+        {"name": "At Specified Time", "value": "specificTime"},
+        {"name": "On Webhook Call", "value": "webhook"},
+        {"name": "On Form Submitted", "value": "form"}
+      ]
+    },
+    {
+      "name": "amount",
+      "display_name": "Amount",
+      "type": "number",
+      "required": false,
+      "default": 1,
+      "description": "Wait amount (used with timeInterval)"
+    },
+    {
+      "name": "unit",
+      "display_name": "Unit",
+      "type": "options",
+      "required": false,
+      "default": "hours",
+      "description": "Unit of the wait amount",
+      "options": [
+        {"name": "Seconds", "value": "seconds"},
+        {"name": "Minutes", "value": "minutes"},
+        {"name": "Hours", "value": "hours"},
+        {"name": "Days", "value": "days"}
+      ]
+    }
+  ],
+  "credentials": [],
+  "inputs": ["main"],
+  "outputs": ["main"],
+  "_source": "n8n-docs 1.123"
+}

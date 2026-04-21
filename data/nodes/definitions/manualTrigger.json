@@ -1,0 +1,12 @@
+{
+  "type": "n8n-nodes-base.manualTrigger",
+  "display_name": "Manual Trigger",
+  "description": "Trigger the workflow manually from the n8n editor (play button).",
+  "category": "Trigger",
+  "type_version": 1,
+  "parameters": [],
+  "credentials": [],
+  "inputs": [],
+  "outputs": ["main"],
+  "_source": "n8n-docs 1.123"
+}

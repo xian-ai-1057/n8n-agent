@@ -1,0 +1,41 @@
+{
+  "type": "n8n-nodes-base.emailReadImap",
+  "display_name": "Email Trigger (IMAP)",
+  "description": "Trigger the workflow when a new email arrives on an IMAP mailbox.",
+  "category": "Trigger",
+  "type_version": 2,
+  "parameters": [
+    {
+      "name": "mailbox",
+      "display_name": "Mailbox",
+      "type": "string",
+      "required": false,
+      "default": "INBOX",
+      "description": "Mailbox name to watch"
+    },
+    {
+      "name": "postProcessAction",
+      "display_name": "Action",
+      "type": "options",
+      "required": false,
+      "default": "read",
+      "description": "What to do with the email after processing",
+      "options": [
+        {"name": "Mark as Read", "value": "read"},
+        {"name": "Nothing", "value": "nothing"}
+      ]
+    },
+    {
+      "name": "downloadAttachments",
+      "display_name": "Download Attachments",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "Whether to download attachments into binary data"
+    }
+  ],
+  "credentials": ["imap"],
+  "inputs": [],
+  "outputs": ["main"],
+  "_source": "n8n-docs 1.123"
+}
