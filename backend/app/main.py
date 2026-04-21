@@ -2,7 +2,7 @@
 
 Run locally:
 
-    OLLAMA_BASE_URL=http://localhost:11434 \\
+    OPENAI_BASE_URL=http://localhost:8000/v1 OPENAI_API_KEY=EMPTY \\
     /opt/miniconda3/envs/agent/bin/python -m uvicorn app.main:app \\
         --app-dir backend --host 0.0.0.0 --port 8000 --reload
 
@@ -51,9 +51,9 @@ def create_app() -> FastAPI:
     app.include_router(router)
 
     logger.info(
-        "backend up: n8n=%s ollama=%s chroma=%s deploy_enabled=%s",
+        "backend up: n8n=%s openai=%s chroma=%s deploy_enabled=%s",
         settings.n8n_url,
-        settings.ollama_base_url,
+        settings.openai_base_url,
         settings.chroma_path,
         bool(settings.n8n_api_key),
     )

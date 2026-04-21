@@ -5,7 +5,7 @@ Usage:
     python scripts/bootstrap_rag.py [--reset]
 
 Steps:
-1. Probe Ollama reachability and model presence.
+1. Probe the OpenAI-compatible endpoint's reachability and model presence.
 2. Ingest discovery collection.
 3. Ingest detailed collection.
 
@@ -24,7 +24,7 @@ if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
 from app.config import get_settings  # noqa: E402
-from app.rag.embedder import OllamaEmbedder, OllamaUnavailable  # noqa: E402
+from app.rag.embedder import EmbedderUnavailable, OpenAIEmbedder  # noqa: E402
 from app.rag.ingest_detailed import ingest_detailed  # noqa: E402
 from app.rag.ingest_discovery import ingest_discovery  # noqa: E402
 from app.rag.store import (  # noqa: E402
@@ -45,12 +45,12 @@ def main(argv: list[str] | None = None) -> int:
 
     settings = get_settings()
     print(f"[bootstrap_rag] chroma_path={settings.chroma_path}")
-    print(f"[bootstrap_rag] ollama={settings.ollama_base_url} model={settings.embed_model}")
+    print(f"[bootstrap_rag] openai={settings.openai_base_url} model={settings.embed_model}")
 
-    embedder = OllamaEmbedder()
+    embedder = OpenAIEmbedder()
     try:
         embedder.ping()
-    except OllamaUnavailable as exc:
+    except EmbedderUnavailable as exc:
         print(f"[bootstrap_rag] FATAL: {exc}", file=sys.stderr)
         return 2
 
@@ -59,7 +59,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         disc_count = ingest_discovery(reset=args.reset, store=store, embedder=embedder)
         det_count = ingest_detailed(reset=args.reset, store=store, embedder=embedder)
-    except OllamaUnavailable as exc:
+    except EmbedderUnavailable as exc:
         print(f"[bootstrap_rag] FATAL: {exc}", file=sys.stderr)
         return 2
     except Exception as exc:  # pragma: no cover

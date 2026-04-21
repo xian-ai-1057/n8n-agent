@@ -22,12 +22,26 @@ class Settings(BaseSettings):
     n8n_url: str = Field(default="http://localhost:5678", description="n8n base URL.")
     n8n_api_key: str = Field(default="", description="X-N8N-API-KEY value.")
 
-    ollama_base_url: str = Field(
-        default="http://host.docker.internal:11434",
-        description="Base URL for the Ollama HTTP API.",
+    # OpenAI-compatible inference endpoint. Works with:
+    # - OpenAI API (https://api.openai.com/v1)
+    # - vllm `--served-model-name` deployments (http://host:8000/v1)
+    # - Any other OpenAI-compatible gateway (LiteLLM, OpenRouter, etc.)
+    openai_base_url: str = Field(
+        default="http://localhost:8000/v1",
+        description="Base URL for the OpenAI-compatible chat/embeddings API.",
     )
-    llm_model: str = Field(default="qwen3.5:9b", description="Generation model tag.")
-    embed_model: str = Field(default="embeddinggemma:latest", description="Embedding model tag.")
+    openai_api_key: str = Field(
+        default="EMPTY",
+        description="API key sent as `Authorization: Bearer`. vllm accepts any value.",
+    )
+    llm_model: str = Field(
+        default="Qwen/Qwen2.5-7B-Instruct",
+        description="Chat completion model name (must match the backend's served model).",
+    )
+    embed_model: str = Field(
+        default="BAAI/bge-m3",
+        description="Embedding model name (must match the backend's served model).",
+    )
 
     chroma_path: str = Field(
         default=str(_PROJECT_ROOT / ".chroma"),

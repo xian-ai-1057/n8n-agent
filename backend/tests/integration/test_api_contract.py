@@ -1,7 +1,7 @@
 """FastAPI contract tests (Implements C1-5 acceptance criteria).
 
 The external services are fully mocked — no network / no Chroma / no
-Ollama / no n8n are touched.
+OpenAI-compat endpoint / no n8n are touched.
 
 - `run_cli` is monkeypatched to return a canned `AgentState`.
 - The health probes are monkeypatched to avoid hitting real services.
@@ -31,7 +31,7 @@ from app.models.workflow import BuiltNode, Connection, WorkflowDraft
 @pytest.fixture()
 def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     # Make sure health checks do not touch external services by default.
-    async def _fake_ollama(_settings: Any) -> dict[str, Any]:
+    async def _fake_openai(_settings: Any) -> dict[str, Any]:
         return {"ok": True, "latency_ms": 5}
 
     async def _fake_n8n(_settings: Any) -> dict[str, Any]:
@@ -40,7 +40,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     async def _fake_chroma(_settings: Any) -> dict[str, Any]:
         return {"ok": True, "latency_ms": 4, "detail": "discovery=417,detailed=30"}
 
-    monkeypatch.setattr(routes_mod, "_check_ollama", _fake_ollama)
+    monkeypatch.setattr(routes_mod, "_check_openai", _fake_openai)
     monkeypatch.setattr(routes_mod, "_check_n8n", _fake_n8n)
     monkeypatch.setattr(routes_mod, "_check_chroma", _fake_chroma)
 
@@ -102,9 +102,9 @@ def test_health_ok(client: TestClient) -> None:
     r = client.get("/health")
     assert r.status_code == 200
     body = r.json()
-    assert set(body.keys()) >= {"ok", "ollama", "n8n", "chroma", "checks"}
+    assert set(body.keys()) >= {"ok", "openai", "n8n", "chroma", "checks"}
     assert body["ok"] is True
-    assert body["ollama"] is True
+    assert body["openai"] is True
     assert body["n8n"] is True
     assert body["chroma"] is True
 
@@ -116,7 +116,7 @@ def test_health_partial_down(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _fake_down(_settings: Any) -> dict[str, Any]:
         return {"ok": False, "detail": "no api key"}
 
-    monkeypatch.setattr(routes_mod, "_check_ollama", _fake_ok)
+    monkeypatch.setattr(routes_mod, "_check_openai", _fake_ok)
     monkeypatch.setattr(routes_mod, "_check_n8n", _fake_down)
     monkeypatch.setattr(routes_mod, "_check_chroma", _fake_ok)
 
@@ -125,7 +125,7 @@ def test_health_partial_down(monkeypatch: pytest.MonkeyPatch) -> None:
     body = c.get("/health").json()
     assert body["ok"] is False
     assert body["n8n"] is False
-    assert body["ollama"] is True
+    assert body["openai"] is True
 
 
 # ----------------------------------------------------------------------

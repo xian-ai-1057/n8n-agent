@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from app.config import get_settings
-from app.rag.embedder import OllamaEmbedder, OllamaUnavailable
+from app.rag.embedder import EmbedderUnavailable, OpenAIEmbedder
 from app.rag.store import COLLECTION_DISCOVERY, ChromaStore
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -31,7 +31,7 @@ def _build_document(entry: dict[str, Any]) -> str:
     """Build the embeddable document string.
 
     We use embeddinggemma's document-side prompt (`title: ... | text: ...`) so
-    retrieval aligns with the query prompt applied in `OllamaEmbedder.embed()`.
+    retrieval aligns with the query prompt applied in `OpenAIEmbedder.embed()`.
     The display_name is repeated in both title and text to anchor the vector.
     """
     display_name = entry.get("display_name") or ""
@@ -61,7 +61,7 @@ def ingest_discovery(
     *,
     reset: bool = False,
     store: ChromaStore | None = None,
-    embedder: OllamaEmbedder | None = None,
+    embedder: OpenAIEmbedder | None = None,
 ) -> int:
     """Upsert all discovery entries. Returns ingested count."""
     catalog_path = Path(catalog_path)
@@ -82,7 +82,7 @@ def ingest_discovery(
 
     settings = get_settings()
     store = store or ChromaStore(settings.chroma_path)
-    embedder = embedder or OllamaEmbedder()
+    embedder = embedder or OpenAIEmbedder()
 
     if reset:
         store.reset(COLLECTION_DISCOVERY)
@@ -119,10 +119,10 @@ def _main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        embedder = OllamaEmbedder()
+        embedder = OpenAIEmbedder()
         embedder.ping()
         ingest_discovery(args.catalog, reset=args.reset, embedder=embedder)
-    except OllamaUnavailable as exc:
+    except EmbedderUnavailable as exc:
         print(f"[ingest_discovery] ERROR: {exc}", file=sys.stderr)
         return 2
     except Exception as exc:
