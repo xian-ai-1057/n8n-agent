@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>n8n Workflow Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+
+  <link rel="stylesheet" href="src/styles-base.css"/>
+  <link rel="stylesheet" href="src/styles-conservative.css"/>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+  <style>
+    body { font-family: "Inter", "Noto Sans TC", sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    // Override default backend URL by setting window.__BACKEND_URL__ before
+    // loading the bundled scripts, or by setting a query string ?backend=...
+    (function () {
+      const q = new URLSearchParams(location.search);
+      const qp = q.get("backend");
+      if (qp) {
+        try { localStorage.setItem("n8n_builder_backend_url", qp); } catch (e) {}
+      }
+    })();
+  </script>
+
+  <script type="text/babel" src="src/mock-data.jsx"></script>
+  <script type="text/babel" src="src/api.jsx"></script>
+  <script type="text/babel" src="src/ui-primitives.jsx"></script>
+  <script type="text/babel" src="src/workflow-diagram.jsx"></script>
+  <script type="text/babel" src="src/workflow-preview.jsx"></script>
+  <script type="text/babel" src="src/conservative-parts.jsx"></script>
+  <script type="text/babel" src="src/conservative-app.jsx"></script>
+
+  <script type="text/babel" data-presets="env,react">
+    const { useState, useEffect } = React;
+
+    function Root() {
+      // Persist theme + density in localStorage so toggles survive reloads.
+      const [theme, setTheme] = useState(() => {
+        try { return localStorage.getItem("n8n_builder_theme") || "light"; }
+        catch (e) { return "light"; }
+      });
+      const [density, setDensity] = useState(() => {
+        try { return localStorage.getItem("n8n_builder_density") || "comfortable"; }
+        catch (e) { return "comfortable"; }
+      });
+
+      useEffect(() => {
+        document.getElementById("root").setAttribute("data-theme", theme);
+        try { localStorage.setItem("n8n_builder_theme", theme); } catch (e) {}
+      }, [theme]);
+
+      useEffect(() => {
+        document.getElementById("root").setAttribute("data-density", density);
+        try { localStorage.setItem("n8n_builder_density", density); } catch (e) {}
+      }, [density]);
+
+      return (
+        <ConservativeApp
+          theme={theme}
+          density={density}
+          onThemeChange={setTheme}
+          onDensityChange={setDensity}
+        />
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<Root/>);
+  </script>
+</body>
+</html>
