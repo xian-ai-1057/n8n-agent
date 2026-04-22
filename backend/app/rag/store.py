@@ -1,8 +1,11 @@
 """ChromaStore — thin wrapper over a single persistent Chroma client (Implements C1-2 §1).
 
-Two collections, both cosine-distance:
+Two collections:
 - `catalog_discovery`
 - `catalog_detailed`
+
+Similarity metric is configurable via `Settings.rag_distance_metric` (cosine /
+l2 / ip) and baked into each collection's `hnsw:space`.
 
 We pass pre-computed embeddings on upsert/query (no server-side embedding function),
 so Chroma never needs to call the embeddings endpoint itself.
@@ -17,6 +20,8 @@ import chromadb
 from chromadb.api.models.Collection import Collection
 from chromadb.config import Settings as ChromaSettings
 
+from .vector_store import validate_distance_metric
+
 COLLECTION_DISCOVERY = "catalog_discovery"
 COLLECTION_DETAILED = "catalog_detailed"
 
@@ -26,9 +31,10 @@ _ALLOWED = {COLLECTION_DISCOVERY, COLLECTION_DETAILED}
 class ChromaStore:
     """Thin wrapper around a Chroma `PersistentClient` plus our two collections."""
 
-    def __init__(self, chroma_path: str):
+    def __init__(self, chroma_path: str, *, distance_metric: str = "cosine"):
         Path(chroma_path).mkdir(parents=True, exist_ok=True)
         self._path = chroma_path
+        self._distance_metric = validate_distance_metric(distance_metric)
         self._client = chromadb.PersistentClient(
             path=chroma_path,
             settings=ChromaSettings(anonymized_telemetry=False, allow_reset=True),
@@ -44,7 +50,7 @@ class ChromaStore:
             raise ValueError(f"Unknown collection: {name!r}")
         return self._client.get_or_create_collection(
             name=name,
-            metadata={"hnsw:space": "cosine"},
+            metadata={"hnsw:space": self._distance_metric},
         )
 
     # ----- public API -------------------------------------------------------

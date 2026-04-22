@@ -262,8 +262,13 @@ def test_chat_internal_error(monkeypatch: pytest.MonkeyPatch, client: TestClient
 
 
 def test_chat_timeout(monkeypatch: pytest.MonkeyPatch, client: TestClient) -> None:
-    # Slash the timeout to keep the test fast.
-    monkeypatch.setattr(routes_mod, "CHAT_TIMEOUT_SECONDS", 0.5)
+    # Slash the timeout to keep the test fast. `get_settings` is @lru_cache'd,
+    # so the /chat handler reads from the same instance we patch here.
+    from app.config import get_settings
+
+    monkeypatch.setattr(
+        get_settings(), "chat_request_timeout_sec", 0.5
+    )
 
     def _slow(*args: Any, **kwargs: Any) -> AgentState:
         time.sleep(3)

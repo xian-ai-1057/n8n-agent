@@ -107,6 +107,32 @@ n8n_agent/
 # EMBED_PROMPT_PROFILE=auto
 ```
 
+#### 2.2 Runtime 調校參數（v1.2）
+
+原本寫死在 agent / rag 模組裡的 knobs，現在可以用環境變數覆寫，不需要改 code
+就能在 local / small cloud / large cloud 等部署情境之間搬動。所有變數皆**選
+填**；未設值時使用 `app/config.py` 中的預設值（與 v1.1 行為一致）。
+
+| 變數 | 預設 | 說明 |
+| --- | --- | --- |
+| `LLM_TEMPERATURE` | `0.2` | 所有未指定 stage 的預設 sampling 溫度 |
+| `LLM_TIMEOUT_SEC` | `180` | 單次 LLM 呼叫的 HTTP timeout（秒）|
+| `CHAT_REQUEST_TIMEOUT_SEC` | `180` | `/chat` 全流程 wall-clock budget（秒） |
+| `AGENT_MAX_RETRIES` | `2` | Validator 失敗後 fix_build 的最大重試次數 |
+| `BUILDER_PROMPT_CHAR_BUDGET` | `12000` | Builder/Fix prompt 字元上限；超過會裁掉尾端 definitions |
+| `VECTOR_STORE_BACKEND` | `chroma` | 向量庫實作。`app/rag/vector_store.py` 留有 factory 擴充點 |
+| `RAG_DISTANCE_METRIC` | `cosine` | 相似度度量：`cosine` / `l2` / `ip` |
+| `RAG_DISCOVERY_K` | `8` | Planner discovery 檢索 top-k |
+| `RAG_DETAILED_K` | `3` | Builder fallback 檢索 top-k |
+| `EMBED_BATCH_SIZE` | `32` | Ingest 時呼叫 embedding 的批次大小 |
+
+**部署 profile 範例**
+
+- 本機開發（vllm 7B + 本地 Chroma）：全部沿用預設。
+- 雲端大模型（slow & expensive）：`LLM_TIMEOUT_SEC=300`、`CHAT_REQUEST_TIMEOUT_SEC=600`、`AGENT_MAX_RETRIES=1`（減少重試以控成本）、`FIX_MODEL=gpt-4o`。
+- 大 context 模型：`BUILDER_PROMPT_CHAR_BUDGET=40000`、`RAG_DETAILED_K=8`。
+- 切換向量庫：實作 `VectorStore` protocol、在 `get_vector_store()` 註冊，再設 `VECTOR_STORE_BACKEND=<name>`。
+
 ### 3. 本機 bootstrap
 
 前置檢查：
@@ -216,3 +242,4 @@ eval harness（D0-5）可透過上述分階段變數（`PLANNER_MODEL` / `BUILDE
 |---|---|---|
 | v1.0.0 | 2026-04-20 | 初版 |
 | v1.1.0 | 2026-04-21 | 新增分階段模型/溫度/embedding prompt profile 環境變數 |
+| v1.2.0 | 2026-04-22 | 新增 runtime 調校參數（timeout/retries/prompt budget/RAG k/distance metric）與 VECTOR_STORE_BACKEND 擴充點 |

@@ -37,13 +37,15 @@ from ..n8n.errors import (
     N8nServerError,
     N8nUnavailable,
 )
-from ..rag.store import COLLECTION_DETAILED, COLLECTION_DISCOVERY, ChromaStore
+from ..rag.store import COLLECTION_DETAILED, COLLECTION_DISCOVERY
+from ..rag.vector_store import get_vector_store
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-CHAT_TIMEOUT_SECONDS: float = 180.0
+# Wall-clock budget for a full /chat pipeline; overridable via
+# `CHAT_REQUEST_TIMEOUT_SEC` env var (see Settings).
 HEALTH_CHECK_TIMEOUT: float = 3.0
 
 
@@ -123,7 +125,7 @@ async def _check_chroma(settings) -> dict[str, Any]:
     t0 = time.monotonic()
     try:
         def _probe() -> tuple[int, int]:
-            store = ChromaStore(settings.chroma_path)
+            store = get_vector_store(settings)
             return store.count(COLLECTION_DISCOVERY), store.count(COLLECTION_DETAILED)
 
         discovery, detailed = await asyncio.wait_for(
@@ -253,10 +255,11 @@ async def _run_chat(
     t0: float,
     deploy: bool,
 ) -> JSONResponse:
+    chat_timeout = settings.chat_request_timeout_sec
     try:
         state: AgentState = await asyncio.wait_for(
             asyncio.to_thread(run_cli, req.message, deploy=deploy),
-            timeout=CHAT_TIMEOUT_SECONDS,
+            timeout=chat_timeout,
         )
     except asyncio.TimeoutError:
         elapsed = time.monotonic() - t0
@@ -265,7 +268,7 @@ async def _run_chat(
             status_code=504,
             content={
                 "ok": False,
-                "error_message": f"timeout after {CHAT_TIMEOUT_SECONDS:.0f}s",
+                "error_message": f"timeout after {chat_timeout:.0f}s",
                 "retry_count": 0,
                 "errors": [],
             },

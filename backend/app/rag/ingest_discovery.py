@@ -18,13 +18,13 @@ from typing import Any
 
 from app.config import get_settings
 from app.rag.embedder import EmbedderUnavailable, OpenAIEmbedder
-from app.rag.store import COLLECTION_DISCOVERY, ChromaStore
+from app.rag.store import COLLECTION_DISCOVERY
+from app.rag.vector_store import VectorStore, get_vector_store
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _DEFAULT_CATALOG = _PROJECT_ROOT / "data" / "nodes" / "catalog_discovery.json"
 _DEFAULT_DEFINITIONS = _PROJECT_ROOT / "data" / "nodes" / "definitions"
 
-_BATCH = 32
 _PROGRESS_EVERY = 50
 
 
@@ -79,9 +79,10 @@ def ingest_discovery(
     catalog_path: str | Path = _DEFAULT_CATALOG,
     *,
     reset: bool = False,
-    store: ChromaStore | None = None,
+    store: VectorStore | None = None,
     embedder: OpenAIEmbedder | None = None,
     definitions_dir: str | Path | None = None,
+    batch_size: int | None = None,
 ) -> int:
     """Upsert all discovery entries. Returns ingested count."""
     catalog_path = Path(catalog_path)
@@ -105,8 +106,9 @@ def ingest_discovery(
     )
 
     settings = get_settings()
-    store = store or ChromaStore(settings.chroma_path)
+    store = store or get_vector_store(settings)
     embedder = embedder or OpenAIEmbedder()
+    batch = batch_size or settings.embed_batch_size
 
     if reset:
         store.reset(COLLECTION_DISCOVERY)
@@ -116,11 +118,11 @@ def ingest_discovery(
     detail_hits = sum(1 for e in items if _slug_for(e["type"]) in detail_slugs)
     print(
         f"[ingest_discovery] source={catalog_path.name} "
-        f"unique_types={len(items)} has_detail={detail_hits}"
+        f"unique_types={len(items)} has_detail={detail_hits} batch={batch}"
     )
 
-    for start in range(0, len(items), _BATCH):
-        chunk = items[start : start + _BATCH]
+    for start in range(0, len(items), batch):
+        chunk = items[start : start + batch]
         ids = [e["type"] for e in chunk]
         docs = [_build_document(e) for e in chunk]
         metas = [
@@ -131,7 +133,6 @@ def ingest_discovery(
         store.upsert(COLLECTION_DISCOVERY, ids, docs, metas, embeddings)
 
         total += len(chunk)
-        # Rough "every 50" progress (batches are 32 so we print as we cross thresholds).
         if total // _PROGRESS_EVERY > (total - len(chunk)) // _PROGRESS_EVERY:
             print(f"[ingest_discovery] upserted {total}/{len(items)}")
 

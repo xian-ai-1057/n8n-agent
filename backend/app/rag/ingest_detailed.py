@@ -21,12 +21,12 @@ from pydantic import ValidationError
 from app.config import get_settings
 from app.models.catalog import NodeDefinition
 from app.rag.embedder import EmbedderUnavailable, OpenAIEmbedder
-from app.rag.store import COLLECTION_DETAILED, ChromaStore
+from app.rag.store import COLLECTION_DETAILED
+from app.rag.vector_store import VectorStore, get_vector_store
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _DEFAULT_DIR = _PROJECT_ROOT / "data" / "nodes" / "definitions"
 
-_BATCH = 16
 _PARAM_SUMMARY_LIMIT = 8
 
 
@@ -62,8 +62,9 @@ def ingest_detailed(
     definitions_dir: str | Path = _DEFAULT_DIR,
     *,
     reset: bool = False,
-    store: ChromaStore | None = None,
+    store: VectorStore | None = None,
     embedder: OpenAIEmbedder | None = None,
+    batch_size: int | None = None,
 ) -> int:
     """Upsert every definitions/*.json. Returns ingested count."""
     definitions_dir = Path(definitions_dir)
@@ -74,8 +75,9 @@ def ingest_detailed(
     print(f"[ingest_detailed] source_dir={definitions_dir} files={len(files)}")
 
     settings = get_settings()
-    store = store or ChromaStore(settings.chroma_path)
+    store = store or get_vector_store(settings)
     embedder = embedder or OpenAIEmbedder()
+    batch = batch_size or settings.embed_batch_size
 
     if reset:
         store.reset(COLLECTION_DETAILED)
@@ -105,8 +107,8 @@ def ingest_detailed(
 
     # Embed in batches.
     total = 0
-    for start in range(0, len(ids), _BATCH):
-        end = start + _BATCH
+    for start in range(0, len(ids), batch):
+        end = start + batch
         chunk_docs = docs[start:end]
         embeddings = embedder.embed_batch(chunk_docs)
         store.upsert(

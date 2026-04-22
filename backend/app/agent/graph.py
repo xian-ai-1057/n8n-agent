@@ -7,6 +7,7 @@ from typing import Any
 
 from langgraph.graph import END, START, StateGraph
 
+from ..config import get_settings
 from ..models.agent_state import AgentState
 from .assembler import assemble_step
 from .builder import build_nodes
@@ -16,8 +17,6 @@ from .retriever_protocol import RetrieverProtocol, get_retriever
 from .validator_node import validate_step
 
 logger = logging.getLogger(__name__)
-
-MAX_RETRIES: int = 2
 
 
 # ----------------------------------------------------------------------
@@ -58,12 +57,12 @@ def _after_validate(state: AgentState) -> str:
 
     Route:
       - validation.ok → "deploy"
-      - retry_count < MAX_RETRIES → "fix_build"
+      - retry_count < agent_max_retries → "fix_build"
       - else → END with error populated.
     """
     if state.validation is not None and state.validation.ok:
         return "deploy"
-    if state.retry_count < MAX_RETRIES:
+    if state.retry_count < get_settings().agent_max_retries:
         return "fix_build"
     return "give_up"
 
