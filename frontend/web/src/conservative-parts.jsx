@@ -288,7 +288,7 @@ function ConversationMessage({ msg }) {
                   <span className="cv-result-card__k">耗時</span>
                   <span className="cv-result-card__v">
                     {msg.workflowRef.elapsedS.toFixed(1)}s
-                    {msg.workflowRef.retryCount != null
+                    {msg.workflowRef.retryCount > 0
                       ? ` · ${msg.workflowRef.retryCount} retry`
                       : ""}
                   </span>

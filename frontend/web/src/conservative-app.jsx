@@ -97,6 +97,25 @@ function useBackendRunner() {
     const ac = new AbortController();
     abortRef.current = ac;
 
+    // Backend `/chat` is stateless — it takes a single `message` and runs the
+    // full plan→build→…→deploy graph from scratch. To preserve multi-turn
+    // intent we prepend prior user messages as context so the agent sees the
+    // whole history, not just the latest refinement.
+    const priorUserMsgs = messages
+      .filter(m => m.role === "user")
+      .map(m => m.content);
+    const effectivePrompt =
+      priorUserMsgs.length === 0
+        ? userContent
+        : [
+            "原始需求:",
+            priorUserMsgs[0],
+            priorUserMsgs.length > 1 ? "\n後續調整:" : "",
+            ...priorUserMsgs.slice(1).map(p => `- ${p}`),
+            "\n當前指令:",
+            userContent,
+          ].filter(Boolean).join("\n");
+
     clearTimers();
     addMsg({ role: "user", content: userContent });
     addMsg({
@@ -116,7 +135,7 @@ function useBackendRunner() {
 
     const started = performance.now();
     try {
-      const { status, data } = await postChat(userContent, { signal: ac.signal });
+      const { status, data } = await postChat(effectivePrompt, { signal: ac.signal });
       const elapsedS = (performance.now() - started) / 1000;
       clearTimers();
       abortRef.current = null;

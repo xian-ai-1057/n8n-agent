@@ -75,8 +75,8 @@ function toHealthRows(payload) {
   }
 
   return {
-    openai: { ok: !!openai.ok, detail: openai.error || fmtMs(openai) },
-    n8n:    { ok: !!n8n.ok,    detail: n8n.error    || fmtMs(n8n) },
+    openai: { ok: !!openai.ok, detail: openai.error || openai.detail || fmtMs(openai) },
+    n8n:    { ok: !!n8n.ok,    detail: n8n.error    || n8n.detail    || fmtMs(n8n) },
     chroma: { ok: !!chroma.ok, detail: chroma.error || chromaDetail },
     ok: !!payload?.ok,
   };

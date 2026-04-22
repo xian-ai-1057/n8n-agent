@@ -164,10 +164,20 @@ function WorkflowPreview({
             <button
               className="btn btn--ghost btn--sm"
               onClick={() => {
-                try { navigator.clipboard.writeText(jsonText); } catch (e) {}
+                try {
+                  const blob = new Blob([jsonText], { type: "application/json" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = (workflow.name || "workflow").replace(/[^\w\-一-鿿]+/g, "_") + ".json";
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                } catch (e) {}
               }}
             >
-              <Icon name="copy" size={13}/> 匯出 JSON
+              <Icon name="copy" size={13}/> 下載 JSON
             </button>
             {deployedUrl ? (
               <a
@@ -255,21 +265,25 @@ function ErrorsPane({ errors, onJumpTo }) {
   return (
     <div className="errors-list">
       {errors.map((e, i) => {
-        const isWarn = e.rule_id.startsWith("W-");
+        const isWarn = e.severity === "warning";
         return (
           <article key={i} className={"error-card error-card--" + (isWarn ? "warn" : "err")}>
             <div className="error-card__head">
               <span className="error-card__badge">{isWarn ? "WARN" : "ERROR"}</span>
               <span className="error-card__rule mono">{e.rule_id}</span>
-              <button className="error-card__jump" onClick={() => onJumpTo(e.node_name)}>
-                跳到節點 <Icon name="arrow" size={13}/>
-              </button>
+              {e.node_name && (
+                <button className="error-card__jump" onClick={() => onJumpTo(e.node_name)}>
+                  跳到節點 <Icon name="arrow" size={13}/>
+                </button>
+              )}
             </div>
-            <div className="error-card__node">
-              <Icon name="pipe" size={13}/>
-              <span>{e.node_name}</span>
-              <span className="error-card__path mono">{e.path}</span>
-            </div>
+            {e.node_name && (
+              <div className="error-card__node">
+                <Icon name="pipe" size={13}/>
+                <span>{e.node_name}</span>
+                {e.path && <span className="error-card__path mono">{e.path}</span>}
+              </div>
+            )}
             <div className="error-card__msg">{e.message}</div>
           </article>
         );
