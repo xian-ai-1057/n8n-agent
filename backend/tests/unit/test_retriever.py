@@ -250,3 +250,59 @@ def test_search_detailed_empty_query_returns_empty_list() -> None:
 
     assert retriever.search_detailed("") == []
     assert embedder.calls == []
+
+
+# ============================================================================
+# B-CAND-01: get_definitions_by_types batch query
+# ============================================================================
+
+
+def test_b_cand_01_batch_returns_definition_map() -> None:
+    """B-CAND-01: batch fetch returns {type: NodeDefinition} for matching ids."""
+    meta_http = _detailed_metadata("n8n-nodes-base.httpRequest", "HTTP Request", "Core", 4.2)
+    meta_slack = _detailed_metadata("n8n-nodes-base.slack", "Slack", "Communication", 1.0)
+    store = _StubStore(
+        by_id={
+            (COLLECTION_DETAILED, "n8n-nodes-base.httpRequest"): {
+                "id": "n8n-nodes-base.httpRequest",
+                "document": "",
+                "metadata": meta_http,
+            },
+            (COLLECTION_DETAILED, "n8n-nodes-base.slack"): {
+                "id": "n8n-nodes-base.slack",
+                "document": "",
+                "metadata": meta_slack,
+            },
+        }
+    )
+    retriever = Retriever(store, _StubEmbedder())
+
+    result = retriever.get_definitions_by_types(
+        ["n8n-nodes-base.httpRequest", "n8n-nodes-base.slack"]
+    )
+
+    assert set(result.keys()) == {"n8n-nodes-base.httpRequest", "n8n-nodes-base.slack"}
+    assert isinstance(result["n8n-nodes-base.httpRequest"], NodeDefinition)
+    assert result["n8n-nodes-base.httpRequest"].type == "n8n-nodes-base.httpRequest"
+    assert isinstance(result["n8n-nodes-base.slack"], NodeDefinition)
+
+
+def test_b_cand_01_batch_returns_none_for_missing_types() -> None:
+    """B-CAND-01: missing types map to None, not absent keys."""
+    store = _StubStore(by_id={})
+    retriever = Retriever(store, _StubEmbedder())
+
+    result = retriever.get_definitions_by_types(["n8n-nodes-base.doesNotExist"])
+
+    assert "n8n-nodes-base.doesNotExist" in result
+    assert result["n8n-nodes-base.doesNotExist"] is None
+
+
+def test_b_cand_01_batch_empty_input_returns_empty_dict() -> None:
+    """B-CAND-01: empty input must short-circuit without calling store."""
+    store = _StubStore(by_id={})
+    retriever = Retriever(store, _StubEmbedder())
+
+    result = retriever.get_definitions_by_types([])
+
+    assert result == {}

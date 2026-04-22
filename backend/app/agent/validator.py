@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -26,6 +27,18 @@ logger = logging.getLogger(__name__)
 
 _UUID_RE = re.compile(
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+
+# C1-4:V-PARAM-009
+_PLACEHOLDER_RE = re.compile(
+    r"\bTODO\b|\bFIXME\b|\bREPLACE[_\s-]?ME\b|\bXXX\b"
+    r"|<\s*fill[_\s-]?in\s*>"
+    r"|<\s*your[-_\s][^>]{1,40}\s*>"
+    r"|\byour[-_]api[-_]key\b"
+    r"|\byour[-_](?:token|secret|key)\b"
+    r"|\bplaceholder\b"
+    r"|\bexample\.(?:com|org|net)\b",
+    re.IGNORECASE
 )
 
 # Trigger allowlist per C1-4 §1 (V-TRIG-001).
@@ -83,7 +96,7 @@ class WorkflowValidator:
     # ------------------------------------------------------------------
 
     def validate(
-        self, draft: "WorkflowDraft | dict[str, Any]"
+        self, draft: WorkflowDraft | dict[str, Any]
     ) -> ValidationReport:
         if draft is None:
             raise TypeError("draft must not be None")
@@ -92,6 +105,7 @@ class WorkflowValidator:
         issues: list[ValidationIssue] = []
         issues.extend(self._check_top_level(data))
         issues.extend(self._check_nodes(data))
+        issues.extend(self._check_placeholder_params(data))  # C1-4:V-PARAM-009
         issues.extend(self._check_connections(data))
         issues.extend(self._check_triggers(data))
 
@@ -360,6 +374,53 @@ class WorkflowValidator:
         return out
 
     # ------------------------------------------------------------------
+    # Parameter quality rules (V-PARAM-xxx)
+    # ------------------------------------------------------------------
+
+    def _walk_params(self, value: Any, path: str) -> Iterator[tuple[str, str]]:
+        """Yield (path, string_value) pairs by recursively walking parameters."""
+        if isinstance(value, str):
+            yield path, value
+        elif isinstance(value, dict):
+            for k, v in value.items():
+                yield from self._walk_params(v, f"{path}.{k}" if path else k)
+        elif isinstance(value, list):
+            for i, v in enumerate(value):
+                yield from self._walk_params(v, f"{path}[{i}]")
+
+    # C1-4:V-PARAM-009
+    def _check_placeholder_params(self, data: dict[str, Any]) -> list[ValidationIssue]:
+        """V-PARAM-009: detect placeholder/stub parameter values."""
+        issues: list[ValidationIssue] = []
+        for idx, node in enumerate(data.get("nodes", [])):
+            name = node.get("name", f"node[{idx}]")
+            params = node.get("parameters", {})
+            for param_path, value in self._walk_params(params, ""):
+                stripped = value.strip()
+                # Skip: empty strings (V-PARAM-001 scope), n8n expressions
+                if not stripped or stripped.startswith(("={{", "{{")):
+                    continue
+                m = _PLACEHOLDER_RE.search(value)
+                if not m:
+                    continue
+                issues.append(ValidationIssue(
+                    rule_id="V-PARAM-009",
+                    rule_class="parameter_quality",
+                    severity=ValidationSeverity.ERROR,
+                    message=(
+                        f"node '{name}' param '{param_path}' appears to be a placeholder: '{value}'"
+                    ),
+                    node_name=name,
+                    path=f"nodes[{idx}].parameters.{param_path}",
+                    suggested_fix=(
+                        f"replace placeholder '{m.group(0)}' in param '{param_path}' "
+                        f"with a real value (e.g. API key from credentials, "
+                        f"or expression ={{{{ $json.fieldName }}}})"
+                    ),
+                ))
+        return issues
+
+    # ------------------------------------------------------------------
     # Connection rules (V-CONN-xxx)
     # ------------------------------------------------------------------
 
@@ -509,7 +570,7 @@ class WorkflowValidator:
 # ======================================================================
 
 
-def _coerce_to_dict(draft: "WorkflowDraft | dict[str, Any]") -> dict[str, Any]:
+def _coerce_to_dict(draft: WorkflowDraft | dict[str, Any]) -> dict[str, Any]:
     """Convert a pydantic WorkflowDraft (if given) to the raw n8n dict shape.
 
     Uses aliases so `typeVersion`, `onError`, etc. round-trip correctly.
@@ -543,7 +604,7 @@ def _is_trigger(node: dict[str, Any]) -> bool:
 
 
 def validate_workflow(
-    draft: "WorkflowDraft | dict[str, Any]",
+    draft: WorkflowDraft | dict[str, Any],
     *,
     known_types: set[str] | None = None,
 ) -> ValidationReport:

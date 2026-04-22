@@ -97,6 +97,8 @@ def _after_validate(state: AgentState) -> str:
 
 
 def _give_up_step(state: AgentState) -> dict[str, Any]:
+    if state.error:  # preserve build-time errors (building_timeout:, building_failed:)
+        return {"messages": state.messages + [{"role": "system", "content": state.error}]}
     errs = state.validation.errors if state.validation else []
     msg = f"validator failed after {state.retry_count} retries; {len(errs)} errors"
     return {

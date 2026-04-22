@@ -12,9 +12,8 @@ from uuid import uuid4
 import pytest
 
 from app.agent.validator import WorkflowValidator, validate_workflow
-from app.models.enums import ConnectionType, ValidationSeverity
+from app.models.enums import ConnectionType
 from app.models.workflow import BuiltNode, Connection, WorkflowDraft
-
 
 # ----------------------------------------------------------------------
 # Helpers / fixtures
@@ -302,3 +301,76 @@ def test_pydantic_draft_input_passes():
 def test_validate_none_raises():
     with pytest.raises(TypeError):
         _v().validate(None)
+
+
+# ----------------------------------------------------------------------
+# V-PARAM-009: placeholder detection
+# ----------------------------------------------------------------------
+
+
+def test_v_param_009_detects_todo_in_param():
+    """V-PARAM-009: a TODO value in a parameter triggers an error."""
+    wf = _minimal_workflow()
+    wf["nodes"][1]["parameters"]["url"] = "TODO: fill in the URL"
+    rpt = _v().validate(wf)
+    assert rpt.ok is False
+    assert "V-PARAM-009" in _rule_ids(rpt.errors)
+
+
+def test_v_param_009_detects_nested_placeholder():
+    """V-PARAM-009: placeholder in deeply nested parameter is found."""
+    wf = _minimal_workflow()
+    wf["nodes"][1]["parameters"] = {
+        "authentication": {"apiKey": "your-api-key"},
+    }
+    rpt = _v().validate(wf)
+    assert rpt.ok is False
+    ids = _rule_ids(rpt.errors)
+    assert "V-PARAM-009" in ids
+
+
+def test_v_param_009_skips_n8n_expressions():
+    """V-PARAM-009: values that are n8n expressions (={{ }}) are not flagged."""
+    wf = _minimal_workflow()
+    wf["nodes"][1]["parameters"]["url"] = "={{ $json.url }}"
+    rpt = _v().validate(wf)
+    # V-PARAM-009 must NOT fire for expression values
+    assert "V-PARAM-009" not in _rule_ids(rpt.errors)
+
+
+def test_v_param_009_issue_has_rule_class_and_suggested_fix():
+    """V-PARAM-009: ValidationIssue carries rule_class and suggested_fix fields."""
+    wf = _minimal_workflow()
+    wf["nodes"][1]["parameters"]["webhook_url"] = "https://example.com/hook"
+    rpt = _v().validate(wf)
+    param_009_issues = [i for i in rpt.errors if i.rule_id == "V-PARAM-009"]
+    assert param_009_issues, "expected at least one V-PARAM-009 error"
+    issue = param_009_issues[0]
+    assert issue.rule_class == "parameter_quality"
+    assert issue.suggested_fix is not None
+    assert len(issue.suggested_fix) > 0
+
+
+def test_v_param_009_clean_workflow_no_false_positive():
+    """V-PARAM-009: minimal workflow with real-looking values passes clean."""
+    wf = _minimal_workflow()
+    # The minimal workflow uses empty parameters {}, so no placeholders
+    rpt = _v().validate(wf)
+    assert "V-PARAM-009" not in _rule_ids(rpt.errors)
+
+
+def test_v_param_009_detects_fill_in_placeholder():
+    """V-PARAM-009: <fill_in> angle-bracket placeholder triggers an error."""
+    wf = _minimal_workflow()
+    wf["nodes"][1]["parameters"]["token"] = "<fill_in>"
+    rpt = _v().validate(wf)
+    assert rpt.ok is False
+    assert "V-PARAM-009" in _rule_ids(rpt.errors)
+
+
+def test_v_param_009_word_boundary_no_false_positive():
+    """V-PARAM-009: substrings that contain TODO/XXX as part of a larger word do not trigger."""
+    wf = _minimal_workflow()
+    wf["nodes"][1]["parameters"]["description"] = "methodology and stodgy"
+    rpt = _v().validate(wf)
+    assert "V-PARAM-009" not in _rule_ids(rpt.errors)

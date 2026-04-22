@@ -16,6 +16,8 @@ class ValidationIssue(BaseModel):
         default=None,
         description="Dotted path into the draft, e.g. 'nodes[3].parameters.url'.",
     )
+    rule_class: str = "structural"  # C1-4:V-PARAM-009
+    suggested_fix: str | None = None  # C1-4:V-PARAM-009
 
 
 class ValidationReport(BaseModel):

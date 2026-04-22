@@ -36,6 +36,14 @@ class RetrieverProtocol(Protocol):
     ) -> list[NodeDefinition]:  # pragma: no cover - optional
         ...
 
+    def get_definitions_by_types(
+        self, types: list[str]
+    ) -> dict[str, NodeDefinition | None]:
+        """Batch-fetch definitions. Returns {type: def_or_None} for each input type.
+        Deduplication is the caller's responsibility or done internally.
+        """  # C1-1:B-CAND-01
+        ...
+
 
 class _FilesystemStubRetriever:
     """In-memory fallback — keyword scoring, no embeddings.
@@ -98,7 +106,7 @@ class _FilesystemStubRetriever:
             return []
 
         scored: list[tuple[int, int, NodeCatalogEntry]] = []
-        for idx, (entry, hay) in enumerate(zip(self._entries, self._entry_haystacks)):
+        for idx, (entry, hay) in enumerate(zip(self._entries, self._entry_haystacks, strict=True)):
             score = sum(hay.count(tok) for tok in tokens)
             if score:
                 scored.append((-score, idx, entry))
@@ -107,6 +115,12 @@ class _FilesystemStubRetriever:
 
     def get_detail(self, node_type: str) -> NodeDefinition | None:
         return self._definitions.get(node_type)
+
+    # C1-1:B-CAND-01
+    def get_definitions_by_types(self, types: list[str]) -> dict[str, NodeDefinition | None]:
+        if not types:
+            return {}
+        return {t: self._definitions.get(t) for t in types}
 
     def search_detailed(self, query: str, k: int = 4) -> list[NodeDefinition]:
         tokens = [t for t in query.lower().split() if t]

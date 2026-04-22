@@ -70,6 +70,9 @@ class _FakeRetriever:
             )
         return None
 
+    def get_definitions_by_types(self, types: list[str]) -> dict:
+        return {t: self.get_detail(t) for t in types}
+
     def search_detailed(self, query: str, k: int = 4) -> list[NodeDefinition]:
         return []
 

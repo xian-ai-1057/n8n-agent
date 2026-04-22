@@ -68,6 +68,15 @@ class Retriever:
             return None
         return _hydrate_definition(rows[0].get("metadata") or {})
 
+    def get_definitions_by_types(self, types: list[str]) -> dict[str, NodeDefinition | None]:  # C1-1:B-CAND-01
+        """Batch-fetch definitions for multiple node types in a single Chroma round-trip."""
+        if not types:
+            return {}
+        unique = list(dict.fromkeys(types))  # dedupe, preserve order
+        rows = self._store.get_by_ids(COLLECTION_DETAILED, unique)
+        hit_map = {r["id"]: _hydrate_definition(r.get("metadata") or {}) for r in rows}
+        return {t: hit_map.get(t) for t in types}
+
     def search_detailed(
         self, query: str, k: int | None = None
     ) -> list[NodeDefinition]:

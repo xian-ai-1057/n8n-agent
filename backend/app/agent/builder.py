@@ -37,28 +37,73 @@ class BuilderOutput(BaseModel):
     connections: list[Connection]
 
 
+# C1-1:B-CAND-01, C1-1:B-CAND-02
 def _collect_candidates(
     plan: list, retriever: RetrieverProtocol
-) -> tuple[list[NodeCandidate], list]:
-    """For each StepPlan, pick the first candidate type and fetch its detailed
-    definition. Return (candidates, definitions) where candidates align with
-    plan order and definitions is a deduped list for the prompt.
-    """
+) -> tuple[list[NodeCandidate], list[dict]]:
+    """Batch-fetch definitions for all candidate types, then pick best per step.
+
+    Uses a single batch query (O(1) Chroma round-trip) instead of one query per
+    step (O(N)). For each step, falls back to candidate[1], [2], ... until one
+    with a detail is found. If all candidates lack detail, uses an empty shell.
+
+    Returns (candidates, diagnostic_messages).
+    """  # C1-1:B-CAND-01, C1-1:B-CAND-02
+    # 1. Collect all candidate types across all steps (deduplicated)
+    all_types = list(dict.fromkeys(
+        t for step in plan for t in step.candidate_node_types
+    ))
+
+    # 2. Single batch query — O(1) Chroma round-trip
+    details = retriever.get_definitions_by_types(all_types)
+
     candidates: list[NodeCandidate] = []
-    seen_types: set[str] = set()
-    defs_ordered: list = []
+    messages: list[dict] = []
+
+    # 3. Per step: find first candidate that has a detail, with fallback
     for step in plan:
         if not step.candidate_node_types:
             continue
-        chosen = step.candidate_node_types[0]
-        defn = retriever.get_detail(chosen)
-        candidates.append(
-            NodeCandidate(step_id=step.step_id, chosen_type=chosen, definition=defn)
-        )
-        if defn is not None and chosen not in seen_types:
-            defs_ordered.append(defn)
-            seen_types.add(chosen)
-    return candidates, defs_ordered
+
+        chosen = None
+        definition = None
+        fallback_index = -1
+
+        for idx, t in enumerate(step.candidate_node_types):
+            if details.get(t) is not None:
+                chosen = t
+                definition = details[t]
+                fallback_index = idx
+                break
+
+        if chosen is None:
+            # All candidates lack detail — use first, proceed with empty shell
+            chosen = step.candidate_node_types[0]
+            messages.append({
+                "role": "builder",
+                "content": (
+                    f"fallback_exhausted: step={step.step_id} all "
+                    f"{len(step.candidate_node_types)} candidates lack detail, "
+                    f"proceeding with empty shell for '{chosen}'"
+                ),
+            })
+        elif fallback_index > 0:
+            messages.append({
+                "role": "builder",
+                "content": (
+                    f"fallback: step={step.step_id} picked "
+                    f"candidate[{fallback_index}]='{chosen}', "
+                    f"skipped {fallback_index} no-detail candidate(s)"
+                ),
+            })
+
+        candidates.append(NodeCandidate(
+            step_id=step.step_id,
+            chosen_type=chosen,
+            definition=definition,
+        ))
+
+    return candidates, messages
 
 
 def _render_builder_prompt(
@@ -110,7 +155,15 @@ def build_nodes(
     prompt_budget = settings.builder_prompt_char_budget
     t0 = time.monotonic()
 
-    candidates, definitions = _collect_candidates(state.plan, retriever)
+    candidates, candidate_messages = _collect_candidates(state.plan, retriever)  # C1-1:B-CAND-02
+
+    # Build the deduplicated definitions list from candidate results for prompt
+    seen_types: set[str] = set()
+    definitions = []
+    for c in candidates:
+        if c.definition is not None and c.chosen_type not in seen_types:
+            definitions.append(c.definition)
+            seen_types.add(c.chosen_type)
 
     plan_payload = [s.model_dump(mode="json") for s in state.plan]
     defs_payload = definitions_as_trimmed_json(definitions)
@@ -169,6 +222,7 @@ def build_nodes(
         return {
             "error": f"building_failed: {exc}",
             "messages": state.messages
+            + candidate_messages
             + [{"role": "builder", "content": f"error: {exc}"}],
         }
 
@@ -187,6 +241,7 @@ def build_nodes(
         "connections": result.connections,
         "candidates": candidates,
         "messages": state.messages
+        + candidate_messages
         + [
             {
                 "role": "builder",
