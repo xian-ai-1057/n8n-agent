@@ -10,7 +10,7 @@ from langgraph.graph import END, START, StateGraph
 from ..config import get_settings
 from ..models.agent_state import AgentState
 from .assembler import assemble_step
-from .builder import build_nodes
+from .builder import BuilderTimeoutError, build_nodes
 from .deployer import deploy_step
 from .planner import plan_step
 from .retriever_protocol import RetrieverProtocol, get_retriever
@@ -33,7 +33,14 @@ def _make_plan_node(retriever: RetrieverProtocol):
 
 def _make_build_node(retriever: RetrieverProtocol):
     def _build(state: AgentState) -> dict[str, Any]:
-        return build_nodes(state, retriever)
+        try:
+            return build_nodes(state, retriever)
+        except BuilderTimeoutError as exc:  # C1-1:B-TIMEOUT-01
+            msg = f"building_timeout: {exc}"
+            return {
+                "error": msg,
+                "messages": state.messages + [{"role": "builder", "content": msg}],
+            }
 
     return _build
 
@@ -45,11 +52,33 @@ def _make_fix_build_node(retriever: RetrieverProtocol):
         bumped = AgentState(
             **{**state.model_dump(), "retry_count": state.retry_count + 1}
         )
-        delta = build_nodes(bumped, retriever)
+        try:
+            delta = build_nodes(bumped, retriever)
+        except BuilderTimeoutError as exc:  # C1-1:B-TIMEOUT-01
+            msg = f"building_timeout: {exc}"
+            return {
+                "error": msg,
+                "retry_count": bumped.retry_count,
+                "messages": bumped.messages + [{"role": "builder", "content": msg}],
+            }
         delta["retry_count"] = bumped.retry_count
         return delta
 
     return _fix_build
+
+
+def _after_build(state: AgentState) -> str:  # C1-1:B-TIMEOUT-01
+    """Conditional edge from build node.
+
+    Route to give_up immediately on timeout or unrecoverable build failure,
+    skipping assemble/validate so they never process empty node lists.
+    """
+    if state.error and (
+        state.error.startswith("building_timeout:")
+        or state.error.startswith("building_failed:")
+    ):
+        return "give_up"
+    return "assemble"
 
 
 def _after_validate(state: AgentState) -> str:
@@ -109,7 +138,11 @@ def build_graph(
 
     g.add_edge(START, "plan")
     g.add_edge("plan", "build")
-    g.add_edge("build", "assemble")
+    g.add_conditional_edges(
+        "build",
+        _after_build,
+        {"assemble": "assemble", "give_up": "give_up"},
+    )
     g.add_edge("assemble", "validate")
 
     g.add_conditional_edges(

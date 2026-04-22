@@ -131,6 +131,83 @@ Prompt 規則：`candidate_node_types` 只能出自 `discovery_hits`；`template
 
 **Retry 模式**：若 `fix_target="builder"`（由 route 設定），state 含 `validation.errors` 或 `critic.concerns` 時，改跑 fix prompt，但仍 **逐步**（不是一次全重跑）—— 只重建被 errors 指涉的 `node_name` 對應的那一步；其他步驟的 `BuiltNode` 保留。讀取 `retry_count` 決定 fix 或 build。
 
+#### 2.3.1 Candidate detail collection（v1.1-impl，bulk builder 也適用）
+
+當前 v1 bulk builder 的 `_collect_candidates` 每個 step 只試第 0 個 candidate 且呼叫 `retriever.get_detail` O(S) 次 Chroma round-trip，是效能與可靠性雙重瓶頸。以下規則在 v1 bulk 與 v2 per-step 皆強制執行。
+
+##### B-CAND-01: 批次 detail 查詢
+
+**Statement**: Builder 準備 prompt definitions 時，必須以**單次** `retriever.get_definitions_by_types(types: list[str])` 批次查詢，而非 per-step 逐次 `get_detail`。`retriever` 介面（`RetrieverProtocol`）需新增此方法並回傳 `dict[str, NodeDefinition | None]`（input type → definition 或 None）。底層 `ChromaStore.get_by_ids` 已支援 list，需一路暴露至 retriever 層。
+
+**Rationale**: 15-step plan 從 15 次 Chroma round-trip（約 30-80ms 每次）降至 1 次，latency 節省 ~400ms。且集中查詢便於觀察「哪些 type 無 detail」與 fallback 決策（B-CAND-02）。
+
+**Affected files**:
+- `backend/app/agent/retriever_protocol.py`（`RetrieverProtocol` 加 `get_definitions_by_types(types: list[str]) -> dict[str, NodeDefinition | None]`；stub `_FilesystemStubRetriever` 補對應實作）
+- `backend/app/rag/retriever.py`（`Retriever` 類新增 method：`self._store.get_by_ids(COLLECTION_DETAILED, types)` → hydrate dict）
+- `backend/app/agent/builder.py`（`_collect_candidates` 重寫使用新批次 API）
+
+**Function signature**:
+```python
+# In RetrieverProtocol + Retriever + _FilesystemStubRetriever:
+def get_definitions_by_types(
+    self, types: list[str]
+) -> dict[str, NodeDefinition | None]: ...
+```
+
+**Examples**:
+- Input: `["n8n-nodes-base.httpRequest", "n8n-nodes-base.set", "unknown.type"]`
+- Output: `{"n8n-nodes-base.httpRequest": <NodeDefinition>, "n8n-nodes-base.set": <NodeDefinition>, "unknown.type": None}`
+- 與舊 `get_detail` 一致語意：未 index 的 type 對應值為 `None`（不拋例外）
+
+**Test scenarios**:
+- 批次輸入 3 種 type，其中 1 種未 index → 回傳 dict 含 3 keys，第 3 個 value 為 None
+- 空 list 輸入 → 回傳 `{}`，**不**呼叫底層 store
+- 重複 type 輸入 → 去重後查詢，但 output dict 保留所有輸入 keys（value 共用 reference）
+- Stub retriever 與 Chroma retriever 行為一致（契約測試）
+
+**Security note**: N/A
+
+##### B-CAND-02: Candidate fallback 迴圈
+
+**Statement**: 當 `step.candidate_node_types[0]` 在 B-CAND-01 批次結果中為 None（無 detail），builder **必須**依序嘗試 `candidate_node_types[1]`、`[2]`... 直到找到有 detail 的 type，才放入 `NodeCandidate.chosen_type`。若全部 candidates 皆無 detail，才走空殼路徑（`chosen_type = candidate_node_types[0]`, `definition = None`）並在 `messages` append 一筆 diagnostic 說明。
+
+**Rationale**: Planner 提供最多 5 個 ranked candidates 是為了容錯；只試第 0 個浪費此設計。且 detail 命中率（~30/529）偏低，fallback 可顯著提升 builder 成功率。
+
+**Affected files**:
+- `backend/app/agent/builder.py`（`_collect_candidates` 加入 fallback loop）
+- `backend/app/models/planning.py`（`NodeCandidate` 可選新增 `fallback_index: int = 0` 紀錄實際命中第幾個 candidate；僅觀察性，不影響 prompt schema）
+
+**Function signature**:
+```python
+def _collect_candidates(
+    plan: list[StepPlan], retriever: RetrieverProtocol
+) -> tuple[list[NodeCandidate], list[NodeDefinition]]:
+    # 1. 收 all_types = flatten(step.candidate_node_types for step in plan)
+    # 2. details = retriever.get_definitions_by_types(unique(all_types))
+    # 3. per step: for idx, t in enumerate(step.candidate_node_types):
+    #      if details.get(t): chosen=t, defn=details[t], fallback_index=idx; break
+    #    else: chosen=candidate_node_types[0], defn=None, fallback_index=-1
+    # 4. return ordered candidates + deduped defs
+```
+
+**Examples**:
+- Step candidates: `["a.unknown", "n8n-nodes-base.set", "n8n-nodes-base.noOp"]`
+  - detail map: `{"a.unknown": None, "n8n-nodes-base.set": <defn>, "n8n-nodes-base.noOp": <defn>}`
+  - 結果: `chosen_type="n8n-nodes-base.set"`, `fallback_index=1`, messages 新增一筆 `{role:"builder", content:"fallback: step=... skipped 1 no-detail candidate(s)"}`
+- Step candidates: `["a", "b", "c"]`, 全 None
+  - 結果: `chosen_type="a"`, `definition=None`, `fallback_index=-1`, messages 新增 `{role:"builder", content:"fallback_exhausted: step=... all 3 candidates lack detail"}`
+- Step candidates: `["n8n-nodes-base.set"]`, 第 0 個有 detail
+  - 結果: `chosen_type="n8n-nodes-base.set"`, `fallback_index=0`, 不新增 diagnostic message
+
+**Test scenarios**:
+- 單一 step，first candidate 無 detail，second 有 → chosen = second；fallback_index == 1
+- 單一 step，全部 candidates 無 detail → chosen = first；definition is None；diagnostic message appended
+- 多 step，只有部分 step 需要 fallback → 只對應 step 有 diagnostic
+- Empty plan → 回傳 `([], [])`，不呼叫 retriever
+- `candidate_node_types` 為空 list（planner bug）→ step 被 skip，不報錯（現行行為保留）
+
+**Security note**: N/A。但如果 fallback 命中率 > 20% 長期成立，表示 planner 與 detailed catalog 有系統性 drift，應報到 C1-2 treat。
+
 #### 2.4 connections_linker
 
 | 項目 | 內容 |
@@ -341,12 +418,92 @@ def build_graph(
 | 場景 | 行為 |
 |---|---|
 | Planner LLM 輸出不合 schema | `state.error = "planning_failed"`，跳 END；不計 retry |
+| Planner LLM timeout | `state.error = "planning_timeout"`，跳 END；不計 retry |
 | Planner 產生 0 steps | validator 會抓 `V-TOP-002` 後照 class routing 處理（catalog-class → replan） |
-| Per-step builder 逾時（單一步驟） | 視為該步驟失敗；`route_by_error_class` 會在下一輪 validator 看到 missing node 後 fix_build |
+| Per-step builder 逾時（單一步驟） | 見 B-TIMEOUT-01：raise `BuilderTimeoutError`；graph 條件邊路由至 `give_up`；不走 fix |
+| Builder LLM 其他例外 | `state.error = "building_failed: {exc}"`；跳 END；不計 retry |
 | `current_step_idx` 超出 plan 範圍（程式 bug） | `fix_build` 節點前置檢查若 `current_step_idx >= len(plan)` 直接 clamp；不 raise |
 | HITL timeout（使用者 30min 未 confirm） | `session_id` 被 MemorySaver GC；下次 `confirm-plan` 回 404（C1-5 v2 處理） |
 | Critic 逾時 | fail-open（C1-7 §Errors） |
 | Deployer 失敗 | `state.error`，不 retry（同 v1） |
+
+### Errors §A. Builder timeout handling（v1.1-impl，對應當前 code）
+
+當前 code 為 v1.0 bulk builder（single-call 同時吐 `nodes` + `connections`），per-step v2 尚未實作。在 bulk builder 上下文下，timeout 語意須修正以避免 silent failure：
+
+#### B-TIMEOUT-01: Builder timeout 必須 raise，不得退化為空 list
+
+**Statement**: 當 `invoke_with_timeout` 在 builder / fix stage 拋出 `LLMTimeoutError`，builder node **不得**回傳 `{"built_nodes": [], "connections": [], ...}` 讓 graph 繼續走 assembler。必須改為拋出新例外 `BuilderTimeoutError`（繼承 `RuntimeError`），讓 LangGraph node wrapper catch 並寫入 `state.error = "building_timeout: {cause}"`，條件邊將狀態路由至 `give_up`。
+
+**Rationale**: 空 `built_nodes` 會讓 assembler 產出無 node 的 `WorkflowDraft` → validator 報 V-TOP-002 + V-TRIG-001（結構錯）→ `fix_build` 被叫起來「修上次 output」，但上次根本是空。Fix prompt 的語意完全走歪，retry 做無效工作。
+
+**Affected files**:
+- `backend/app/agent/builder.py`（新增 `BuilderTimeoutError`；`except LLMTimeoutError` 分支由 return 改為 raise）
+- `backend/app/agent/graph.py`（node factory 外層 catch `BuilderTimeoutError`，寫 `error` 欄位後讓條件邊路由至 `give_up`）
+- `backend/app/models/agent_state.py`（`error` 欄位語意規範見 B-TIMEOUT-02）
+
+**Examples**:
+- ❌ 舊行為: timeout → return empty → assembler → validator V-TOP-002 → fix_build → LLM 困惑
+- ✅ 新行為: timeout → raise BuilderTimeoutError → graph catches → `state.error="building_timeout: ..."` → give_up → END
+
+**Test scenarios**:
+- Mock `invoke_with_timeout` 拋 `LLMTimeoutError` → graph 最終 `state.error` 以 `building_timeout:` 開頭、retry_count 未增、validation 欄為 None
+- 同情境下 `state.built_nodes` 保持空 list 但**不**被 assembler 消費
+- 同情境下 `_after_validate` 條件邊**不**被觸發（因 validate 從未跑）
+
+**Security note**: N/A
+
+#### B-TIMEOUT-02: `state.error` 分類 prefix
+
+**Statement**: `AgentState.error` 欄位使用 `{category}: {detail}` 格式，category 為下列之一：
+
+| category | 語意 | 來源節點 |
+|---|---|---|
+| `planning_failed` | planner LLM schema / logic 錯誤 | planner |
+| `planning_timeout` | planner LLM 逾時 | planner |
+| `building_failed` | builder LLM 其他例外 | builder |
+| `building_timeout` | builder LLM 逾時（新增） | builder（B-TIMEOUT-01 抛） |
+| `assembler_*` | assembler guard 錯誤 | assembler |
+| `validator_*` | validator 執行錯誤（非 ValidationIssue） | validator_node |
+| `deploy_failed` | n8n client 錯誤 | deployer |
+| `give_up` | retry 用盡 / security block | give_up node |
+| `plan_rejected` | HITL 拒絕 plan（v2） | await_plan_approval |
+
+**Rationale**: Debug 與 observability 需能快速分流錯誤來源；frontend 依 prefix 顯示不同 UI 訊息；eval harness 依 prefix 計錯誤類型分佈。
+
+**Affected files**:
+- `backend/app/models/agent_state.py`（補 docstring 明列允許 prefix）
+- `backend/app/agent/planner.py`（已有 `planning_timeout` / `planning_failed`，保留）
+- `backend/app/agent/builder.py`（新增 `building_timeout`；保留 `building_failed`）
+- `backend/app/agent/graph.py`（`_give_up_step` 寫 `error` 時 prefix `give_up:`；保留既有 message）
+- `backend/tests/test_graph_wiring.py` 需新增 prefix 驗證
+
+**Examples**:
+- ✅ `"building_timeout: LLM exceeded 180s (stage=builder)"`
+- ✅ `"give_up: validator failed after 2 retries; 3 errors"`
+- ❌ `"timeout"`（無 prefix）、`"building: timed out"`（格式不符）
+
+**Test scenarios**:
+- 每個 prefix 至少 1 個 wire-level test 驗證 graph end state
+- `state.error.split(":", 1)[0]` 必屬上表 category 集合
+
+**Security note**: N/A
+
+### Errors §B. Builder graph edge routing（v1.1-impl）
+
+`_after_validate` 條件邊維持 v1 行為；新增 `_after_build` 條件邊（或 node-level guard）：若 `state.error` 以 `building_timeout:` 或 `building_failed:` 開頭 → 直接路由至 `give_up`，**不**進 assembler。
+
+```python
+def _after_build(state: AgentState) -> str:
+    if state.error and (
+        state.error.startswith("building_timeout:")
+        or state.error.startswith("building_failed:")
+    ):
+        return "give_up"
+    return "assemble"
+```
+
+這條 edge 要在 `build → assemble` 硬邊處改為 conditional；測試 `test_graph_wiring.py` 需加一例：builder raise BuilderTimeoutError 時 assembler 節點從未被呼叫（可用 spy）。
 
 ## Acceptance Criteria
 
@@ -368,3 +525,4 @@ def build_graph(
 |---|---|---|
 | v1.0.0 | 2026-04-20 | 初版：5 節點 + 1 條件邊、bulk builder |
 | v2.0.0 | 2026-04-21 | 重大結構變更：per-step builder 迴圈、rule_class 分流路由、HITL plan confirm、整合 C1-7 critic 與 C1-2 v1.1 templates。棄用 `BuilderOutput`，拆為 `BuilderStepOutput` + `ConnectionsOutput` |
+| v2.0.1 | 2026-04-22 | 新增 v1.1-impl 過渡條目（適用 v1 bulk builder 現行 code，v2 重寫後自動繼承）：B-TIMEOUT-01（builder timeout 必 raise 不退化空 list）、B-TIMEOUT-02（`state.error` category prefix 規範）、B-CAND-01（retriever 批次 definitions 查詢）、B-CAND-02（candidate fallback 迴圈）。對應 backend bottleneck analysis P0/P1 條目 |

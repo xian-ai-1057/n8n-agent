@@ -23,6 +23,13 @@ from .retriever_protocol import (
 logger = logging.getLogger(__name__)
 
 
+# C1-1:B-TIMEOUT-01
+class BuilderTimeoutError(RuntimeError):
+    """Raised when the builder LLM exceeds the configured timeout.
+    Caught by graph node wrapper; graph writes state.error and routes to give_up.
+    """
+
+
 class BuilderOutput(BaseModel):
     """LLM structured-output wrapper (C1-1 §3)."""
 
@@ -154,15 +161,9 @@ def build_nodes(
     llm = get_llm(BuilderOutput, stage=stage)
     try:
         result: BuilderOutput = invoke_with_timeout(llm, prompt)  # type: ignore[assignment]
-    except LLMTimeoutError as exc:
+    except LLMTimeoutError as exc:  # C1-1:B-TIMEOUT-01
         logger.warning("builder LLM timeout (%s): %s", prompt_name, exc)
-        return {
-            "built_nodes": [],
-            "connections": [],
-            "candidates": candidates,
-            "messages": state.messages
-            + [{"role": "builder", "content": f"timeout: {exc}"}],
-        }
+        raise BuilderTimeoutError(f"stage={stage} cause={exc}") from exc
     except Exception as exc:  # noqa: BLE001
         logger.exception("builder LLM call failed (%s)", prompt_name)
         return {

@@ -49,4 +49,12 @@ class AgentState(BaseModel):
         default_factory=list,
         description="Role/content tuples. Validator errors are appended here before retry.",
     )
-    error: str | None = None
+    # C1-1:B-TIMEOUT-02
+    error: str | None = Field(
+        default=None,
+        description=(
+            "Terminal error string, prefixed by category: "
+            "planning_failed: | planning_timeout: | "
+            "building_failed: | building_timeout: | give_up:"
+        ),
+    )
