@@ -133,7 +133,7 @@ def get_retriever() -> RetrieverProtocol:
         from ..config import get_settings
         from ..rag.embedder import OpenAIEmbedder
         from ..rag.retriever import Retriever
-        from ..rag.store import ChromaStore
+        from ..rag.vector_store import get_vector_store
     except ImportError as exc:
         logger.info("Phase 2-A rag module not importable (%s); using stub", exc)
         return _FilesystemStubRetriever()
@@ -141,7 +141,7 @@ def get_retriever() -> RetrieverProtocol:
     try:
         from ..rag.store import COLLECTION_DISCOVERY
         settings = get_settings()
-        store = ChromaStore(settings.chroma_path)
+        store = get_vector_store(settings)
         # Cheap sanity: if the discovery collection is empty the retriever is
         # useless — fall back immediately rather than serving zero hits.
         try:

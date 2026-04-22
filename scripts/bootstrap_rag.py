@@ -30,8 +30,8 @@ from app.rag.ingest_discovery import ingest_discovery  # noqa: E402
 from app.rag.store import (  # noqa: E402
     COLLECTION_DETAILED,
     COLLECTION_DISCOVERY,
-    ChromaStore,
 )
+from app.rag.vector_store import get_vector_store  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -44,7 +44,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     settings = get_settings()
-    print(f"[bootstrap_rag] chroma_path={settings.chroma_path}")
+    print(
+        f"[bootstrap_rag] backend={settings.vector_store_backend} "
+        f"path={settings.chroma_path} metric={settings.rag_distance_metric}"
+    )
     print(f"[bootstrap_rag] openai={settings.openai_base_url} model={settings.embed_model}")
 
     embedder = OpenAIEmbedder()
@@ -54,7 +57,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[bootstrap_rag] FATAL: {exc}", file=sys.stderr)
         return 2
 
-    store = ChromaStore(settings.chroma_path)
+    store = get_vector_store(settings)
 
     try:
         disc_count = ingest_discovery(reset=args.reset, store=store, embedder=embedder)

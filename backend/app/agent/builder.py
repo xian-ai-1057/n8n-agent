@@ -9,6 +9,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from ..config import get_settings
 from ..models.agent_state import AgentState
 from ..models.planning import NodeCandidate
 from ..models.workflow import BuiltNode, Connection
@@ -27,11 +28,6 @@ class BuilderOutput(BaseModel):
 
     nodes: list[BuiltNode]
     connections: list[Connection]
-
-
-# Rough char budget for the builder prompt. Above this we drop trailing
-# definitions (least-ranked by plan order) to avoid LLM context overrun.
-_PROMPT_CHAR_BUDGET: int = 12000
 
 
 def _collect_candidates(
@@ -103,6 +99,8 @@ def build_nodes(
     retriever: RetrieverProtocol,
 ) -> dict[str, Any]:
     """Run the builder node (fresh or retry depending on state)."""
+    settings = get_settings()
+    prompt_budget = settings.builder_prompt_char_budget
     t0 = time.monotonic()
 
     candidates, definitions = _collect_candidates(state.plan, retriever)
@@ -129,10 +127,10 @@ def build_nodes(
         prompt_name = "builder"
         prompt = _render_builder_prompt(state, plan_payload, defs_payload)
 
-    if len(prompt) > _PROMPT_CHAR_BUDGET and defs_payload:
+    if len(prompt) > prompt_budget and defs_payload:
         original_len = len(prompt)
         keep = max(1, len(defs_payload) // 2)
-        while len(prompt) > _PROMPT_CHAR_BUDGET and keep >= 1:
+        while len(prompt) > prompt_budget and keep >= 1:
             trimmed = defs_payload[:keep]
             if is_retry:
                 prompt = _render_fix_prompt(state, trimmed)
@@ -147,12 +145,13 @@ def build_nodes(
             keep,
             original_len,
             len(prompt),
-            _PROMPT_CHAR_BUDGET,
+            prompt_budget,
         )
     else:
         logger.info("builder prompt len=%d defs=%d", len(prompt), len(defs_payload))
 
-    llm = get_llm(BuilderOutput)
+    stage = "fix" if is_retry else "builder"
+    llm = get_llm(BuilderOutput, stage=stage)
     try:
         result: BuilderOutput = invoke_with_timeout(llm, prompt)  # type: ignore[assignment]
     except LLMTimeoutError as exc:

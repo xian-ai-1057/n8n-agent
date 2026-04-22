@@ -15,12 +15,15 @@ from __future__ import annotations
 from .embedder import EmbedderUnavailable, OpenAIEmbedder
 from .retriever import Retriever
 from .store import COLLECTION_DETAILED, COLLECTION_DISCOVERY, ChromaStore
+from .vector_store import VectorStore, get_vector_store
 
 __all__ = [
     "ChromaStore",
     "EmbedderUnavailable",
     "OpenAIEmbedder",
     "Retriever",
+    "VectorStore",
+    "get_vector_store",
     "COLLECTION_DISCOVERY",
     "COLLECTION_DETAILED",
 ]

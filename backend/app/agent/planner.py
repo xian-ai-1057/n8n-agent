@@ -9,6 +9,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from ..config import get_settings
 from ..models.agent_state import AgentState
 from ..models.planning import StepPlan
 from .llm import LLMTimeoutError, get_llm, invoke_with_timeout
@@ -19,8 +20,6 @@ from .retriever_protocol import (
 )
 
 logger = logging.getLogger(__name__)
-
-DISCOVERY_K = 8
 
 
 class PlannerOutput(BaseModel):
@@ -34,9 +33,10 @@ def plan_step(state: AgentState, retriever: RetrieverProtocol) -> dict[str, Any]
 
     Returns a state delta dict LangGraph will merge.
     """
+    settings = get_settings()
     t0 = time.monotonic()
     logger.info("planner start msg=%r", state.user_message[:80])
-    hits = retriever.search_discovery(state.user_message, DISCOVERY_K)
+    hits = retriever.search_discovery(state.user_message, settings.rag_discovery_k)
     logger.info(
         "retriever top_k=%d types=%s",
         len(hits),
@@ -51,7 +51,7 @@ def plan_step(state: AgentState, retriever: RetrieverProtocol) -> dict[str, Any]
         },
     )
 
-    llm = get_llm(PlannerOutput)
+    llm = get_llm(PlannerOutput, stage="planner")
     try:
         result: PlannerOutput = invoke_with_timeout(llm, prompt)  # type: ignore[assignment]
     except LLMTimeoutError as exc:

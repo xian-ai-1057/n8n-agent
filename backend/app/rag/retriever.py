@@ -8,26 +8,36 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from app.config import get_settings
 from app.models.catalog import NodeCatalogEntry, NodeDefinition
 from app.rag.embedder import OpenAIEmbedder
-from app.rag.store import COLLECTION_DETAILED, COLLECTION_DISCOVERY, ChromaStore
+from app.rag.store import COLLECTION_DETAILED, COLLECTION_DISCOVERY
+from app.rag.vector_store import VectorStore
 
 
 class Retriever:
-    """High-level query surface over the two RAG collections."""
+    """High-level query surface over the two RAG collections.
 
-    def __init__(self, store: ChromaStore, embedder: OpenAIEmbedder) -> None:
+    Default `k` values come from `Settings.rag_discovery_k` and
+    `Settings.rag_detailed_k`. Callers can still override per-call.
+    """
+
+    def __init__(self, store: VectorStore, embedder: OpenAIEmbedder) -> None:
         self._store = store
         self._embedder = embedder
 
     # ----- discovery -------------------------------------------------------
 
-    def search_discovery(self, query: str, k: int = 8) -> list[NodeCatalogEntry]:
+    def search_discovery(
+        self, query: str, k: int | None = None
+    ) -> list[NodeCatalogEntry]:
         """Planner-facing: semantic top-k over `catalog_discovery`.
 
         Score = 1 - cosine_distance. Results are already ordered descending by
         score (Chroma returns ascending distance).
         """
+        if k is None:
+            k = get_settings().rag_discovery_k
         if not query.strip():
             return []
         embedding = self._embedder.embed(query)
@@ -58,8 +68,12 @@ class Retriever:
             return None
         return _hydrate_definition(rows[0].get("metadata") or {})
 
-    def search_detailed(self, query: str, k: int = 3) -> list[NodeDefinition]:
+    def search_detailed(
+        self, query: str, k: int | None = None
+    ) -> list[NodeDefinition]:
         """Fallback semantic search over the detailed index."""
+        if k is None:
+            k = get_settings().rag_detailed_k
         if not query.strip():
             return []
         embedding = self._embedder.embed(query)
