@@ -225,9 +225,65 @@ st.session_state.last_failed_workflow_json: dict | None
 - [ ] 瀏覽器關 tab 後 backend log 有 `stream_aborted`、UI 無崩潰（下次 reload 由 `history` 恢復）。
 - [ ] `HITL 模式` toggle 關閉時直接走 one-shot / 串流而不出現 plan review。
 
+## Traceability entries (current implementation)
+
+### U-PLAN-01: Streamlit 顯示 assistant.plan
+
+**Statement**: `frontend/app.py` 的 `_render_assistant` 在接收到 backend JSON 回應時,必須將 `response.plan` 存入 `st.session_state.messages[i]["plan"]`,並在「執行摘要」expander 中展開顯示每一步 `step_id` + `description`(對應 C1-6 §9 `assistant.plan` 欄位規格)。
+
+**Affected files**:
+- `frontend/app.py`(現已有 `msg.get("plan")` 讀取邏輯,L134–137;但 backend 從未填入 → 需在接收端從 response 取 `plan` 並寫入 message dict)
+- `frontend/tests/` 或 smoke test(若有)
+
+**行為規則**:
+1. 當 POST `/chat` 回應含 `plan` key(A-RESP-01 保證),將 `plan` 原樣存入 message dict:
+   `assistant_msg["plan"] = response_json.get("plan", [])`
+2. `_render_assistant` 只要 `plan` 非空即展開 expander(現有分支已寫好,只需確認資料來源正確)。
+3. 若 `plan` 欄位不存在(極舊 backend)→ 當作空 list,不 crash。
+
+**Examples**:
+- Pass: backend 回 `{"plan": [{"step_id":"step_1","description":"抓 API",...}]}` → UI expander 顯示 `- step_1 抓 API`。
+- Pass: backend 回 `{"plan": []}` → expander 只顯示 retries / elapsed,不顯示 plan 區塊。
+- Fail (pre-fix): backend 不回 `plan` 欄位 → `msg.get("plan")` 為 None,永遠走 falsy 分支。
+
+**Test scenarios**:
+1. mock backend response 含非空 plan → message dict 有 `plan` key,render 輸出含 step_id。
+2. mock backend response `plan=[]` → render 不顯示 plan 區塊。
+3. mock backend response 無 plan key(legacy)→ 不拋 KeyError。
+
+**Security note**: N/A(plan 由 backend sanitize 過)。
+
+---
+
+### U-WEB-01: React web 前端由 backend 同源供應
+
+**Statement**: `frontend/web/index.html` + `src/` 為獨立 React 前端;部署時由 backend 以 `/app` 路徑(C1-5:A-WEB-01)掛載,而非由獨立 web server 伺服。這消除瀏覽器端的 CORS 問題。
+
+**Affected files**:
+- `frontend/web/index.html`(不需修改;資源相對路徑即可解析為 `/app/...`)
+- `frontend/web/src/conservative-app.jsx`(fetch 目標維持 `/chat`、`/health` 相對路徑,不寫絕對 origin)
+
+**行為規則**:
+1. `fetch("/chat", ...)` 與 `fetch("/health")` 必須使用**相對路徑**,令瀏覽器解析為 `http://localhost:8000/chat`(同源)。
+2. 絕對路徑(如 `http://localhost:8000/chat`)不應寫死,避免 port 變動時破裂;若需配置化,使用 `<meta name="backend-base">` 或 runtime injected config。
+3. 若 `frontend/web/` 要獨立用 Vite dev server 啟動(非本條目 scope),需 proxy `/chat` 與 `/health` 到 8000,或擴充 C1-5:A-WEB-01 的 allow_origins。
+
+**Examples**:
+- Pass: 瀏覽器打開 `http://localhost:8000/app/` → HTML 載入,其內 `fetch("/chat")` 解析為 `http://localhost:8000/chat`,同源,無 CORS preflight 需求。
+- Fail: hardcode `fetch("http://localhost:8000/chat")` 且從 `file://` 或其他 origin 開啟 → CORS block。
+
+**Test scenarios**:
+1. `grep -n "fetch(" frontend/web/src/conservative-app.jsx` → 所有 fetch 目標為相對路徑。
+2. E2E(手動 / Playwright,out-of-MVP):打開 `http://localhost:8000/app/`,送一次 `/chat` 請求成功。
+
+**Security note**: 同 A-WEB-01(C1-8)。同源策略使 React 前端不依賴 CORS 白名單,降低配置錯誤面。
+
+---
+
 ## 變更紀錄
 
 | 版本 | 日期 | 變更 |
 |---|---|---|
 | v1.0.0 | 2026-04-20 | 初版：同步 /chat、workflow 連結、錯誤 banner |
 | v2.0.0 | 2026-04-21 | 接入 SSE、HITL plan review 表、critic 結果獨立顯示、rule_class 顏色標記、suggested_fix 提示、templates sidebar；backend 為 v1 JSON 時自動降級 |
+| v2.0.1 | 2026-04-22 | 新增 traceability 條目：U-PLAN-01（Streamlit 顯示 assistant.plan，搭配 C1-5:A-RESP-01）、U-WEB-01（React 前端由 backend 同源供應，搭配 C1-5:A-WEB-01）|

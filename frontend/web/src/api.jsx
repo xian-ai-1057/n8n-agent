@@ -6,13 +6,15 @@
 
 const DEFAULT_BACKEND_URL =
   (typeof window !== "undefined" && window.__BACKEND_URL__) ||
-  "http://localhost:8000";
+  (typeof window !== "undefined" && window.location.origin !== "null"
+    ? window.location.origin
+    : "http://localhost:8000");  // C1-6:U-WEB-01
 
 function getBackendUrl() {
   try {
     const stored = localStorage.getItem("n8n_builder_backend_url");
     if (stored) return stored;
-  } catch (e) {}
+  } catch (e) { console.warn("localStorage unavailable:", e); }
   return DEFAULT_BACKEND_URL;
 }
 function setBackendUrl(url) {

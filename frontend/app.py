@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from typing import Any
 
 import httpx
@@ -163,9 +164,7 @@ if prompt:
 
     with st.chat_message("assistant"):
         status = st.status("生成 workflow 中… plan → build → validate → deploy", expanded=True)
-        import time as _time
-
-        t0 = _time.monotonic()
+        t0 = time.monotonic()
         data: dict[str, Any] | None = None
         error_text: str | None = None
         try:
@@ -174,7 +173,7 @@ if prompt:
                     f"{backend_url.rstrip('/')}/chat",
                     json={"message": prompt},
                 )
-            elapsed = _time.monotonic() - t0
+            elapsed = time.monotonic() - t0
             if r.status_code >= 500:
                 error_text = f"後端錯誤（{r.status_code}）：{r.text[:300]}"
                 status.update(label=f"失敗 (HTTP {r.status_code})", state="error")
@@ -224,7 +223,7 @@ if prompt:
                 )
             else:
                 content_bits.append(data.get("error_message") or "失敗。")
-            elapsed = _time.monotonic() - t0
+            elapsed = time.monotonic() - t0
             assistant_msg = {
                 "role": "assistant",
                 "content": " ".join(content_bits),
@@ -233,6 +232,7 @@ if prompt:
                 "workflow_json": data.get("workflow_json"),
                 "retry_count": data.get("retry_count", 0),
                 "errors": data.get("errors") or [],
+                "plan": data.get("plan") or [],  # C1-6:U-PLAN-01
                 "elapsed_s": elapsed,
             }
             st.session_state.messages.append(assistant_msg)

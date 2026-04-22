@@ -16,9 +16,11 @@ LangGraph pipeline; if you reverse-proxy, set proxy read timeout >= 200 s.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .api.routes import router
 from .config import get_settings
@@ -51,6 +53,14 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(router)
+
+    # C1-5:A-WEB-01 — serve React web frontend at /app (same-origin, avoids CORS expansion)
+    _web_dir = Path(__file__).resolve().parents[2] / "frontend" / "web"
+    if _web_dir.is_dir():
+        app.mount("/app", StaticFiles(directory=str(_web_dir), html=True), name="web")
+        logger.info("static frontend mounted at /app from %s", _web_dir)
+    else:
+        logger.warning("static frontend not mounted: %s missing", _web_dir)
 
     logger.info(
         "backend up: n8n=%s openai=%s llm=%s embed=%s chroma=%s deploy_enabled=%s",

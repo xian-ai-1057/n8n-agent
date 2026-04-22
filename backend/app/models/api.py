@@ -10,7 +10,7 @@ from .validation import ValidationIssue
 
 
 class ChatRequest(BaseModel):
-    message: str = Field(..., min_length=1, max_length=2000)
+    message: str = Field(..., min_length=1, max_length=8000)  # C1-5:A-MSG-01
 
 
 class ChatResponse(BaseModel):
@@ -20,4 +20,5 @@ class ChatResponse(BaseModel):
     workflow_json: dict[str, Any] | None = None
     retry_count: int = 0
     errors: list[ValidationIssue] = Field(default_factory=list)
+    plan: list[dict[str, Any]] = Field(default_factory=list)  # C1-5:A-RESP-01
     error_message: str | None = None

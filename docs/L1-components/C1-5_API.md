@@ -286,9 +286,128 @@ Timeout：一次性 pipeline 預算 **180s** wall clock（LangGraph 內每 LLM c
 - [ ] V-SEC-001 命中時回 422 且 `error_message` 明確指出 blocked type。
 - [ ] 同時 1001 個並存 session 時第 1001 個回 503。
 
+## Traceability entries (current implementation)
+
+> 以下條目為「目前 v1 實作」的硬性合約。v2 的 SSE / HITL 尚未落地,這組 ID 用於追蹤現有 `/chat` + `/health` 行為與其必要修補。
+
+### A-RESP-01: `ChatResponse` 必須包含 `plan` 欄位
+
+**Statement**: 當 planner node 產生 plan 後,`/chat` 的 JSON 回應必須在 `plan` 欄位序列化回傳 `list[StepPlan]`,以供前端渲染「執行摘要」區塊 (C1-6 §9 `assistant.plan`)。
+
+**Affected files**:
+- `backend/app/models/api.py` (擴充 `ChatResponse`)
+- `backend/app/api/routes.py` (於 `_state_to_response` 填入 `state.plan`)
+- `backend/tests/test_api.py` 或新檔 `test_routes.py` (新增回應 schema 測試)
+
+**Schema delta**:
+```python
+class ChatResponse(BaseModel):
+    ok: bool
+    workflow_url: str | None = None
+    workflow_id: str | None = None
+    workflow_json: dict[str, Any] | None = None
+    retry_count: int = 0
+    errors: list[ValidationIssue] = Field(default_factory=list)
+    plan: list[StepPlan] = Field(default_factory=list)   # NEW — A-RESP-01
+    error_message: str | None = None
+```
+
+**`_state_to_response` 行為**:
+- `state.plan` 為 `list[StepPlan]`;直接 assign 到 `ChatResponse.plan`。
+- 若 `state.plan` 為空 list,回傳空 list(非 `None`),維持欄位恆存。
+- 欄位必存於成功與失敗兩種情境(失敗時前端仍可用 plan 協助除錯)。
+
+**Examples**:
+- Pass: `ChatResponse(ok=True, plan=[StepPlan(step_id="step_1", ...)], ...)` → JSON `"plan": [{...}]`
+- Pass (empty): planner 失敗 → `plan=[]`(不可 `null`)
+- Fail: `state_to_response` 漏填 → `msg.get("plan")` 在 `frontend/app.py` L126 永遠為 `None` → 「執行摘要」不展開 plan 區塊。
+
+**Test scenarios**:
+1. 成功跑完 pipeline → response 含非空 `plan` list,每項有 `step_id`、`description`、`intent`、`candidate_node_types`、`reason`。
+2. planner 產生 0 步 → response 的 `plan == []`(且 key 存在)。
+3. v1 client(不認 `plan` 欄位)→ Pydantic 不應強制 reject;目前 v1 client 只讀已知欄位,新增欄位向前相容。
+
+**Security note**: N/A(plan 內容已經 sanitize,不含 secrets)。
+
+---
+
+### A-MSG-01: `ChatRequest.message` max_length 提升至 8000
+
+**Statement**: React 前端 (`frontend/web/src/conservative-app.jsx`) 會在 multi-turn 場景下把歷輪使用者訊息串接成 `effectivePrompt`。為避免 5+ turn 的合理對話被 422 reject,`ChatRequest.message` 的上限由 2000 調整為 8000。
+
+**Affected files**:
+- `backend/app/models/api.py` (修改 `Field(max_length=...)`)
+- `backend/tests/test_api.py`(邊界測試)
+
+**Schema delta**:
+```python
+class ChatRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=8000)   # A-MSG-01
+```
+
+**C1-8 同步**: 本條目**取代** C1-5 §1 與 §8.1 中「長度 > 2000 → 400」的既有描述;security gate 的 `message` 長度上限同步提升到 8000。`edited_plan[*].description` 上限 200 不變。
+
+**Examples**:
+- Pass: 7999 字的 message → 200 / 202 / 422(視 pipeline 結果,但非長度拒絕)
+- Pass: 空字串 → 422(由 `min_length=1`)
+- Fail: 8001 字 → 422 (Pydantic 原生 validation)
+
+**Test scenarios**:
+1. message 長度 2001(原上限邊界)→ 不再被 reject。
+2. message 長度 8000 → 通過 Pydantic。
+3. message 長度 8001 → 422。
+4. message 長度 0 → 422。
+
+**Security note**: 長度上限提高會增加 LLM token 消耗,但不影響 prompt-injection 防線(C1-8 sanitizer 不依賴長度)。若 token 成本成為瓶頸,由 rate limit 處理。
+
+---
+
+### A-WEB-01: 內嵌 React web 前端與 CORS 政策
+
+**Statement**: 後端在啟動時,若專案根目錄下存在 `frontend/web/` 目錄,必須以 FastAPI `StaticFiles` 掛載在 `/app` 路徑,使 React 前端透過**同源** `http://localhost:8000/app/` 存取 `/chat` 與 `/health`,繞過 CORS。Streamlit 前端 (`http://localhost:8501`) 的 CORS 設定保留不變。
+
+**Affected files**:
+- `backend/app/main.py`(新增 `StaticFiles` 掛載,條件式)
+- `backend/app/config.py`(沿用既有 `_PROJECT_ROOT`,不需改 Settings)
+- `backend/tests/test_main.py` 或 `test_static.py`(新增測試)
+
+**Mount 規則**:
+1. 計算 web 目錄:`web_dir = _PROJECT_ROOT / "frontend" / "web"`。
+   - `_PROJECT_ROOT` 已由 `backend/app/config.py` 匯出,等同 `Path(__file__).resolve().parents[2]`(從 `backend/app/main.py` 算仍為專案根)。
+2. 僅在 `web_dir.exists() and web_dir.is_dir()` 時才 mount;否則 log warning 並略過。
+   - 原因:`StaticFiles(directory=...)` 在目錄缺席時會在 app 啟動期拋錯;對於 CI / minimal deploy 情境需要 graceful degrade。
+3. Mount 語法:`app.mount("/app", StaticFiles(directory=str(web_dir), html=True), name="web")`。
+   - `html=True` 讓 `GET /app/` 自動回傳 `index.html`(SPA 路由支援)。
+4. **順序**:必須在 `app.include_router(router)` 之後 mount,確保 `/` 與 `/health` 等 API routes 不被 static 覆蓋(StaticFiles 以 `/app` 前綴掛載,實務上不衝突,但維持 router-first 順序避免未來誤配)。
+
+**CORS 規則(不變)**:
+- `allow_origins=["http://localhost:8501"]` 保留為 Streamlit 專用。
+- 不新增 browser origin(如 `http://localhost:8000` 為同源,本就不需 CORS)。
+- React 前端若在開發期用 Vite dev server 額外 port 啟動(out-of-scope),需自行 proxy 到 8000,或之後補條目擴增 allow_origins。
+
+**Examples**:
+- Pass: `curl http://localhost:8000/app/` → 200, `text/html`, 內容為 `index.html`。
+- Pass: `curl http://localhost:8000/app/src/conservative-app.jsx` → 200, js 內容。
+- Pass: `curl http://localhost:8000/health` 仍回 JSON(未被 static 覆蓋)。
+- Fail (graceful): `frontend/web/` 不存在 → app 啟動成功,log 出現 "static frontend not mounted: <path> missing"。
+
+**Test scenarios**:
+1. `frontend/web/index.html` 存在 → `TestClient.get("/app/")` 回 200 且 content-type 含 `text/html`。
+2. `frontend/web/` 缺席(monkeypatch `_PROJECT_ROOT` 指向 tmpdir 或 rename 目錄)→ app 啟動不拋例外,`/chat` 仍可用。
+3. `/chat` 路由未被 `/app` mount 影響:POST `/chat` 正常。
+4. CORS preflight `OPTIONS /chat` from `Origin: http://localhost:8501` → 通過;from `Origin: http://evil.test` → 無 CORS header(瀏覽器 reject,後端無損)。
+
+**Security note**:
+- **C1-8 相關**: StaticFiles 路徑必須限定於 `frontend/web/`,不得指向 repo 其他目錄(避免洩漏 `backend/` 原始碼)。`html=True` 不會啟用目錄列表,僅 fallback 到 `index.html`。
+- 若未來加入使用者上傳功能,不得共用此 mount。
+- CORS allow_origins 維持白名單;不用 `*`、不開啟 `allow_credentials`。
+
+---
+
 ## 變更紀錄
 
 | 版本 | 日期 | 變更 |
 |---|---|---|
 | v1.0.0 | 2026-04-20 | 初版：同步 /chat + /health |
 | v2.0.0 | 2026-04-21 | SSE streaming、HITL `confirm-plan` 端點、session storage 契約；整合 C1-8 security gate；/health 新增 templates 檢查；ChatResponse 加 critic_concerns 欄位（向前相容） |
+| v2.0.1 | 2026-04-22 | 新增 traceability 條目：A-RESP-01（ChatResponse.plan）、A-MSG-01（message max_length=8000，取代 §1/§8.1 中 2000 的上限）、A-WEB-01（StaticFiles 掛載 `/app`）|

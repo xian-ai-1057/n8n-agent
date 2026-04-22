@@ -211,6 +211,8 @@ def _state_to_response(state: AgentState, settings) -> ChatResponse:
     elif validator_failed:
         error_message = f"validator failed after {state.retry_count} retries"
 
+    plan = [s.model_dump(mode="json") for s in state.plan]  # C1-5:A-RESP-01
+
     return ChatResponse(
         ok=ok,
         workflow_url=state.workflow_url,
@@ -218,6 +220,7 @@ def _state_to_response(state: AgentState, settings) -> ChatResponse:
         workflow_json=workflow_json,
         retry_count=state.retry_count,
         errors=errors,
+        plan=plan,
         error_message=error_message,
     )
 
