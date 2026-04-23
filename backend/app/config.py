@@ -49,6 +49,14 @@ class Settings(BaseSettings):
         default="EMPTY",
         description="API key sent as `Authorization: Bearer`. vllm accepts any value.",
     )
+    # C1-2:R-CONF-01
+    embed_base_url: str = Field(
+        default="",
+        description=(
+            "Embeddings endpoint base URL. Empty → fall back to openai_base_url. "
+            "See C1-2 §10 / R-CONF-01."
+        ),
+    )
     llm_model: str = Field(
         default="Qwen/Qwen2.5-7B-Instruct",
         description="Default chat model. Per-stage overrides below take precedence.",
@@ -211,6 +219,11 @@ class Settings(BaseSettings):
             "critic": self.critic_temperature,
         }.get(stage)
         return self.llm_temperature if override is None else override
+
+    @property
+    def effective_embed_base_url(self) -> str:
+        """Fall back to openai_base_url when embed_base_url is empty."""
+        return self.embed_base_url or self.openai_base_url
 
     model_config = SettingsConfigDict(
         env_file=str(_PROJECT_ROOT / ".env"),

@@ -38,7 +38,7 @@ class OpenAIEmbedder:
     ) -> None:
         settings = get_settings()
         self.model = model or settings.embed_model
-        self.base_url = base_url or settings.openai_base_url
+        self.base_url = base_url or settings.effective_embed_base_url  # C1-2:R-CONF-01
         self.api_key = api_key or settings.openai_api_key
         raw_profile = profile or settings.embed_prompt_profile
         if raw_profile not in VALID_PROFILES:

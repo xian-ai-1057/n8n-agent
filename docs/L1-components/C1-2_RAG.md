@@ -10,7 +10,7 @@
 
 - `data/nodes/catalog_discovery.json`（由 `scripts/xlsx_to_catalog.py` 從 `n8n_official_nodes_reference.xlsx` 產出；529 筆，格式見 R2-2）
 - `data/nodes/definitions/*.json`（30 筆詳細節點，格式見 R2-2）
-- OpenAI 相容 embedding 端點：`$OPENAI_BASE_URL/embeddings`，模型 `$EMBED_MODEL`（預設 `BAAI/bge-m3`）
+- OpenAI 相容 embedding 端點：`${EMBED_BASE_URL:-$OPENAI_BASE_URL}/embeddings`，模型 `$EMBED_MODEL`（預設 `BAAI/bge-m3`）。`EMBED_BASE_URL` 未設時 fallback 到 `OPENAI_BASE_URL`，完整語意見 §10 / R-CONF-01。
 - `CHROMA_PATH` 環境變數
 
 ## Outputs
@@ -46,7 +46,8 @@ discovery = client.get_or_create_collection(
     metadata={"hnsw:space": "cosine"},
 )
 # Embedding 透過 OpenAIEmbedder（langchain_openai.OpenAIEmbeddings）：
-# base_url = OPENAI_BASE_URL, api_key = OPENAI_API_KEY, model = EMBED_MODEL
+# base_url = EMBED_BASE_URL or OPENAI_BASE_URL  (§10 / R-CONF-01)
+# api_key  = OPENAI_API_KEY, model = EMBED_MODEL
 ```
 
 ### 2. Ingest API（scripts / ingest modules）
@@ -262,6 +263,89 @@ user_query
   → return list[DiscoveryHit] of length ≤ k
 ```
 
+### 10. Embedding 端點獨立設定（v1.2 新增 — R-CONF-01）
+
+**Rule ID**: `R-CONF-01` — "Embed base URL separable from LLM base URL"
+
+**Statement**: Embedding 端點的 base URL 由 `EMBED_BASE_URL` 獨立決定；當 `EMBED_BASE_URL` 為未設或空字串時，fallback 到 `OPENAI_BASE_URL`。Chat LLM 端點（`llm.py`）**不受 `EMBED_BASE_URL` 影響**，始終走 `OPENAI_BASE_URL`。此變更為純加法、向後相容。
+
+**Motivation**: 部署場景常見 chat model 掛在 vllm / OpenAI，而 embedding model 掛在 Ollama / TEI / 另一台 GPU。v1.1 以前 embedder 與 LLM 共用 `OPENAI_BASE_URL`，強迫兩者同一端點，限制部署拓撲。
+
+**Affected files**:
+
+- `backend/app/config.py` —
+  - 新增 `embed_base_url: str = Field(default="", description="Embeddings endpoint base URL. Empty → fall back to openai_base_url. See C1-2 §10 / R-CONF-01.")`。
+  - 新增 derived accessor（與既有 `model_for` / `temperature_for` 同區塊）：
+    ```python
+    @property
+    def effective_embed_base_url(self) -> str:
+        """R-CONF-01: fall back to openai_base_url when embed_base_url is empty."""
+        return self.embed_base_url or self.openai_base_url
+    ```
+    使用 property 而非方法，讓 embedder 讀法自然（`settings.effective_embed_base_url`）。
+- `backend/app/rag/embedder.py` —
+  - `OpenAIEmbedder.__init__` 中 `self.base_url = base_url or settings.openai_base_url` 改為 `self.base_url = base_url or settings.effective_embed_base_url`。
+  - 其他欄位（`api_key`、`model`、`profile`、`ping`、`embed`、`embed_batch`）不變；`ping()` 沿用 `self.base_url`，因此自動指向正確端點。
+  - 在 class docstring 補一行：引用 R-CONF-01，說明 base URL 的來源。
+  - 顯式標註 `# C1-2:R-CONF-01` 於讀取 `effective_embed_base_url` 的那一行。
+- `.env.example` —
+  - 在「`# ---------- 2. OpenAI-compatible inference endpoint ----------`」區塊，於 `OPENAI_API_KEY` 下方新增：
+    ```
+    # Optional: separate endpoint for the embeddings model. Leave empty to
+    # reuse OPENAI_BASE_URL (v1.1 behaviour). Useful when chat is on vllm
+    # but embeddings run on Ollama/TEI/another GPU. API key is still
+    # OPENAI_API_KEY (shared). See docs/L1-components/C1-2_RAG.md §10.
+    # EMBED_BASE_URL=
+    ```
+
+**Function / API signatures**:
+
+```python
+# backend/app/config.py
+class Settings(BaseSettings):
+    embed_base_url: str = Field(default="", description=...)
+
+    @property
+    def effective_embed_base_url(self) -> str: ...
+```
+
+```python
+# backend/app/rag/embedder.py — OpenAIEmbedder.__init__ 片段
+self.base_url = base_url or settings.effective_embed_base_url  # C1-2:R-CONF-01
+```
+
+**Examples**:
+
+| 情境 | `OPENAI_BASE_URL` | `EMBED_BASE_URL` | `OpenAIEmbedder.base_url` | LLM `base_url` |
+|---|---|---|---|---|
+| 1. 共用端點（v1.1 行為） | `http://localhost:8000/v1` | _未設_ | `http://localhost:8000/v1` | `http://localhost:8000/v1` |
+| 2. 共用端點（空字串明確設） | `http://localhost:8000/v1` | `` | `http://localhost:8000/v1` | `http://localhost:8000/v1` |
+| 3. 分離端點 | `http://localhost:8000/v1` (vllm) | `http://localhost:11434/v1` (Ollama) | `http://localhost:11434/v1` | `http://localhost:8000/v1` |
+| 4. 僅 embed 走雲 | `http://localhost:8000/v1` | `https://api.openai.com/v1` | `https://api.openai.com/v1` | `http://localhost:8000/v1` |
+
+**反例（應該發生但不要做）**:
+
+- ❌ 同時修改 `llm.py` 讀 `embed_base_url` — 會破壞 R-CONF-01「chat 不受影響」的承諾。
+- ❌ 直接在 `embedder.py` 寫 `base_url or settings.embed_base_url or settings.openai_base_url` — 應經 `effective_embed_base_url` property，避免 fallback 邏輯散佈多處。
+- ❌ 把 `embed_base_url` 預設改為 `"http://localhost:8000/v1"` — 會讓 v1.1 `.env`（只設 `OPENAI_BASE_URL=https://api.openai.com/v1` 那種）在升級後 embedding 意外指回 localhost。**預設必須為空字串**以維持 fallback 語意。
+
+**Test scenarios**（給 test-engineer 參考）:
+
+1. `Settings(openai_base_url="http://a/v1").effective_embed_base_url == "http://a/v1"`（未設 embed_base_url）
+2. `Settings(openai_base_url="http://a/v1", embed_base_url="").effective_embed_base_url == "http://a/v1"`（空字串）
+3. `Settings(openai_base_url="http://a/v1", embed_base_url="http://b/v1").effective_embed_base_url == "http://b/v1"`
+4. Monkeypatch `settings`，實例化 `OpenAIEmbedder()` 不帶參數，驗證 `embedder.base_url` 等於 `effective_embed_base_url`（場景 1 與 3 各跑一次）。
+5. 顯式傳 `OpenAIEmbedder(base_url="http://override")` 時，仍以參數為準（參數 > settings，既有行為，不得 regress）。
+6. `llm.py` / `ChatOpenAI` 建立路徑不受 `embed_base_url` 影響（寫一個 test：設 `embed_base_url` 後檢查 LLM handle 的 base URL 仍是 `openai_base_url`）。
+
+**Security note**:
+- 觸及 C1-8 §§ 資料外流面：若使用者把 `EMBED_BASE_URL` 指向雲端，embedded 的節點 catalog（含 `display_name` / `description`）會離開本機。這是**使用者明示的部署決策**，spec 不阻擋；但 data_flow.md §6 已有類似敘述（`OPENAI_BASE_URL` 指雲端時 prompt 會外洩），本 rule 的 security impact 與之對等，不需新增 `S-` 規則。**API key 共用** `OPENAI_API_KEY` — 不新增 `EMBED_API_KEY`；若未來兩個端點需要不同 key 再另開 spec。
+- 不得 log `embed_base_url` 值之外的任何端點憑證。`/health` 不回 `embed_base_url`（避免無意洩漏內部拓撲）。
+
+**Backward compatibility guarantee**:
+- 既有 v1.1 `.env` 只要不新增 `EMBED_BASE_URL` 即可零修改升級。
+- Chroma collection 不需要 re-ingest（embedding 模型與 prompt profile 都沒變）。僅當使用者切換到**不同模型**的 embed 端點時才需 `--force` 重建（沿用 §4 規則）。
+
 ## Errors
 
 | 情境 | 行為 |
@@ -284,6 +368,7 @@ user_query
 - [ ] `filter_by_coverage` 不 drop 任何 hit，輸入與輸出 hit set 完全相同；僅重排順序。
 - [ ] `QUERY_REWRITE_ENABLED=0` 時 `search_discovery` 走舊路徑（直接對原句 embed），不觸發任何 planner LLM 呼叫。
 - [ ] 切換 `EMBED_PROMPT_PROFILE` 各 profile 值（含 `auto`、`bge`、`openai`、`embeddinggemma`、`none`）後 `scripts/bootstrap_rag.py --force` 皆能成功完成。
+- [ ] R-CONF-01：`EMBED_BASE_URL` 未設時 `OpenAIEmbedder().base_url == settings.openai_base_url`；設為獨立 URL 時 `OpenAIEmbedder().base_url` 等於該值；`llm.py` 的 ChatOpenAI `base_url` **不**受 `EMBED_BASE_URL` 影響。
 
 ## 變更紀錄
 
@@ -291,3 +376,4 @@ user_query
 |---|---|---|
 | v1.0.0 | 2026-04-20 | 初版 |
 | v1.1.0 | 2026-04-21 | 新增 embedding prompt profiles、query rewrite、reranker、workflow_templates collection、has_detail-aware 降級路徑 |
+| v1.2.0 | 2026-04-23 | 新增 §10 / R-CONF-01：`EMBED_BASE_URL` 可獨立於 `OPENAI_BASE_URL`，未設則 fallback；chat LLM 不受影響，向後相容 |

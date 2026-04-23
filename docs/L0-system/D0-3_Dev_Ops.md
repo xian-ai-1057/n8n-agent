@@ -65,10 +65,11 @@ n8n_agent/
 |---|---|---|
 | `N8N_URL` | `http://localhost:5678` | backend 從 host 連 n8n 時使用 |
 | `N8N_API_KEY` | _(空)_ | n8n UI Settings → n8n API 產生後填入；header `X-N8N-API-KEY` |
-| `OPENAI_BASE_URL` | `http://localhost:8000/v1` | OpenAI 相容推論端點（vllm / OpenAI / LiteLLM）；容器內用 `http://host.docker.internal:8000/v1` |
-| `OPENAI_API_KEY` | `EMPTY` | Bearer token；vllm 不驗證，OpenAI 需填真實金鑰 |
+| `OPENAI_BASE_URL` | `http://localhost:8000/v1` | OpenAI 相容推論端點（vllm / OpenAI / LiteLLM）；容器內用 `http://host.docker.internal:8000/v1`。預設同時供 chat 與 embeddings 使用（若未設 `EMBED_BASE_URL`） |
+| `EMBED_BASE_URL` | _(空 → fallback to `OPENAI_BASE_URL`)_ | OpenAI 相容 embeddings 端點。設值時只影響 embedding 呼叫（C1-2 RAG），chat LLM 仍走 `OPENAI_BASE_URL`。用途：chat 與 embedding 掛在不同伺服器（例如 LLM 走 vllm、embedding 走 Ollama / TEI）。**API key 沿用 `OPENAI_API_KEY`**（本期不分離；若未來兩端需要不同 key 再新增 `EMBED_API_KEY`，屬後續 spec）。參見 R-CONF-01（C1-2 §10）。 |
+| `OPENAI_API_KEY` | `EMPTY` | Bearer token；vllm 不驗證，OpenAI 需填真實金鑰。同時用於 chat 與 embedding 端點 |
 | `LLM_MODEL` | `Qwen/Qwen2.5-7B-Instruct` | 生成 LLM；需對應伺服器實際 served model id |
-| `EMBED_MODEL` | `BAAI/bge-m3` | Embedding；同樣需對應伺服器 served model id |
+| `EMBED_MODEL` | `BAAI/bge-m3` | Embedding；需對應 `EMBED_BASE_URL`（或 fallback 的 `OPENAI_BASE_URL`）實際 served model id |
 | `CHROMA_PATH` | `./data/chroma` | ChromaDB persist dir |
 | `LOG_LEVEL` | `INFO` | backend log level |
 | `BACKEND_URL` | `http://localhost:8000` | 供 Streamlit 呼叫 |
@@ -143,6 +144,8 @@ docker --version
 
 # 2) 推論端點健檢（確認 chat + embedding 模型都已服務）
 curl -s "$OPENAI_BASE_URL/models" -H "Authorization: Bearer $OPENAI_API_KEY" | jq '.data[].id'
+# 若 chat 與 embedding 分別掛在不同伺服器，另外檢查 embedding 端點：
+curl -s "${EMBED_BASE_URL:-$OPENAI_BASE_URL}/models" -H "Authorization: Bearer $OPENAI_API_KEY" | jq '.data[].id'
 
 # 3) Python 3.11
 python3.11 --version
@@ -223,6 +226,7 @@ eval harness（D0-5）可透過上述分階段變數（`PLANNER_MODEL` / `BUILDE
 ## Errors
 
 - OpenAI 相容端點不可達 → backend `/health` 回 `{"openai": false}`；`/chat` 直接 503。
+- Embedding 端點不可達（當 `EMBED_BASE_URL` 有設且無法連線；未設時 fallback 到 `OPENAI_BASE_URL`，同上）→ RAG ingest / retriever 啟動時 raise `EmbedderUnavailable`（C1-2 §Errors）。`/health` 目前不單獨探測 embedding 端點（若未來需要可列入後續 spec）。
 - n8n 不可達 → `/health` 回 `{"n8n": "down"}`；deployer 階段拋 `DeployError`（見 C1-3）。
 - Chroma 目錄權限錯 → ingest script 直接 raise，不 swallow。
 - `.env` 缺 `N8N_API_KEY` → backend 啟動時 fail-fast（`config.py` 用 `pydantic-settings` 必填驗證）。
@@ -230,6 +234,7 @@ eval harness（D0-5）可透過上述分階段變數（`PLANNER_MODEL` / `BUILDE
 ## Acceptance Criteria
 
 - [ ] `.env.example` 欄位與本表一致。
+- [ ] `EMBED_BASE_URL` 未設時，`OpenAIEmbedder` 的 `base_url` 應等於 `OPENAI_BASE_URL`（向後相容 v1.1；詳見 C1-2 §10 / R-CONF-01）。
 - [ ] `docker compose up -d n8n` 後 n8n UI :5678 可達。
 - [ ] `python scripts/bootstrap_rag.py` 完成後 `data/chroma/` 有兩個 collection（見 C1-2）。
 - [ ] `uvicorn app.main:app` 啟動後 `GET /health` 三項皆 ok。
@@ -243,3 +248,4 @@ eval harness（D0-5）可透過上述分階段變數（`PLANNER_MODEL` / `BUILDE
 | v1.0.0 | 2026-04-20 | 初版 |
 | v1.1.0 | 2026-04-21 | 新增分階段模型/溫度/embedding prompt profile 環境變數 |
 | v1.2.0 | 2026-04-22 | 新增 runtime 調校參數（timeout/retries/prompt budget/RAG k/distance metric）與 VECTOR_STORE_BACKEND 擴充點 |
+| v1.3.0 | 2026-04-23 | 新增 `EMBED_BASE_URL`（embedding 端點可獨立於 chat 端點；未設則 fallback 到 `OPENAI_BASE_URL`）。詳見 C1-2 §10 / R-CONF-01 |
