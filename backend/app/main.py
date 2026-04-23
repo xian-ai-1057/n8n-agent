@@ -62,11 +62,25 @@ def create_app() -> FastAPI:
     else:
         logger.warning("static frontend not mounted: %s missing", _web_dir)
 
+    # C1-2:R-CONF-01,R-CONF-02 — surface split endpoint config in startup log
+    # so operators can confirm EMBED_BASE_URL / EMBED_API_KEY took effect.
+    embed_url = settings.effective_embed_base_url
+    embed_url_tag = (
+        "split"
+        if settings.embed_base_url and embed_url != settings.openai_base_url
+        else "shared"
+    )
+    embed_key_tag = "set" if settings.embed_api_key else "fallback"
     logger.info(
-        "backend up: n8n=%s openai=%s llm=%s embed=%s chroma=%s deploy_enabled=%s",
+        "backend up: n8n=%s openai=%s llm=%s "
+        "embed_url=%s (%s) embed_key=%s embed_model=%s "
+        "chroma=%s deploy_enabled=%s",
         settings.n8n_url,
         settings.openai_base_url,
         settings.llm_model,
+        embed_url,
+        embed_url_tag,
+        embed_key_tag,
         settings.embed_model,
         settings.chroma_path,
         bool(settings.n8n_api_key),

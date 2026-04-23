@@ -57,6 +57,14 @@ class Settings(BaseSettings):
             "See C1-2 §10 / R-CONF-01."
         ),
     )
+    # C1-2:R-CONF-02
+    embed_api_key: str = Field(
+        default="",
+        description=(
+            "API key for the embeddings endpoint. Empty → fall back to openai_api_key. "
+            "See C1-2 §11 / R-CONF-02."
+        ),
+    )
     llm_model: str = Field(
         default="Qwen/Qwen2.5-7B-Instruct",
         description="Default chat model. Per-stage overrides below take precedence.",
@@ -224,6 +232,11 @@ class Settings(BaseSettings):
     def effective_embed_base_url(self) -> str:
         """Fall back to openai_base_url when embed_base_url is empty."""
         return self.embed_base_url or self.openai_base_url
+
+    @property
+    def effective_embed_api_key(self) -> str:
+        """R-CONF-02: fall back to openai_api_key when embed_api_key is empty."""
+        return self.embed_api_key or self.openai_api_key
 
     model_config = SettingsConfigDict(
         env_file=str(_PROJECT_ROOT / ".env"),

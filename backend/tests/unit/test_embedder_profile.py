@@ -256,3 +256,121 @@ def test_r_conf_01_llm_base_url_unaffected_by_embed_base_url() -> None:
         call_kwargs = mock_chat.call_args.kwargs
         assert call_kwargs["base_url"] == "http://llm:8000/v1"
         assert call_kwargs["base_url"] != "http://ollama:11434/v1"
+
+
+# ---- R-CONF-02: embed_api_key fallback logic -------------------------------
+
+
+def test_r_conf_02_effective_embed_api_key_falls_back_to_openai_api_key() -> None:
+    """When embed_api_key is empty, effective_embed_api_key returns openai_api_key."""
+    from app.config import Settings
+
+    s = Settings(openai_api_key="shared-key", embed_api_key="")
+    assert s.effective_embed_api_key == "shared-key"
+
+
+def test_r_conf_02_effective_embed_api_key_uses_dedicated_key_when_set() -> None:
+    """When embed_api_key is set, effective_embed_api_key returns it, not openai_api_key."""
+    from app.config import Settings
+
+    s = Settings(openai_api_key="vllm-key", embed_api_key="sk-openai-real")
+    assert s.effective_embed_api_key == "sk-openai-real"
+
+
+@patch("app.rag.embedder.OpenAIEmbeddings")
+def test_r_conf_02_embedder_uses_effective_embed_api_key_from_settings(
+    mock_embeddings,
+) -> None:
+    """OpenAIEmbedder picks api_key from effective_embed_api_key when none passed."""
+    from unittest.mock import patch as _patch
+
+    with _patch("app.rag.embedder.get_settings") as mock_settings:
+        mock_settings.return_value.embed_model = "BAAI/bge-m3"
+        mock_settings.return_value.effective_embed_base_url = "http://ollama:11434/v1"
+        mock_settings.return_value.effective_embed_api_key = "sk-embed-only"
+        mock_settings.return_value.embed_prompt_profile = "none"
+
+        embedder = OpenAIEmbedder()
+        assert embedder.api_key == "sk-embed-only"
+
+
+@patch("app.rag.embedder.OpenAIEmbeddings")
+def test_r_conf_02_embedder_explicit_api_key_overrides_settings(
+    mock_embeddings,
+) -> None:
+    """When api_key is passed explicitly, it takes precedence over settings."""
+    from unittest.mock import patch as _patch
+
+    with _patch("app.rag.embedder.get_settings") as mock_settings:
+        mock_settings.return_value.embed_model = "BAAI/bge-m3"
+        mock_settings.return_value.effective_embed_base_url = "http://ollama:11434/v1"
+        mock_settings.return_value.effective_embed_api_key = "sk-from-settings"
+        mock_settings.return_value.embed_prompt_profile = "none"
+
+        embedder = OpenAIEmbedder(api_key="sk-explicit")
+        assert embedder.api_key == "sk-explicit"
+
+
+def test_r_conf_02_llm_api_key_unaffected_by_embed_api_key() -> None:
+    """Setting embed_api_key must not change the api_key used by ChatOpenAI in llm.py."""
+    from unittest.mock import MagicMock, patch as _patch
+
+    with _patch("app.agent.llm.get_settings") as mock_settings, \
+         _patch("app.agent.llm.ChatOpenAI") as mock_chat:
+        mock_settings.return_value.openai_base_url = "http://llm:8000/v1"
+        mock_settings.return_value.openai_api_key = "vllm-key"
+        mock_settings.return_value.llm_timeout_sec = 60.0
+        mock_settings.return_value.model_for.return_value = "Qwen/Qwen2.5-7B-Instruct"
+        mock_settings.return_value.temperature_for.return_value = 0.2
+        # embed_api_key set to a completely different key
+        mock_settings.return_value.embed_api_key = "sk-openai-real"
+        mock_settings.return_value.effective_embed_api_key = "sk-openai-real"
+
+        mock_chat.return_value = MagicMock()
+
+        from app.agent.llm import _base_chat
+        _base_chat()
+
+        call_kwargs = mock_chat.call_args.kwargs
+        assert call_kwargs["api_key"] == "vllm-key"
+        assert call_kwargs["api_key"] != "sk-openai-real"
+
+
+# ---- R-CONF-01 closure: retriever_protocol no longer hardcodes openai_base_url
+
+
+@patch("app.agent.retriever_protocol.OpenAIEmbedder")
+@patch("app.agent.retriever_protocol.get_vector_store")
+def test_r_conf_01_get_retriever_does_not_hardcode_openai_base_url(
+    mock_get_store,
+    mock_embedder_cls,
+) -> None:
+    """get_retriever() must not pass openai_base_url, so embedder picks effective_embed_base_url."""
+    from unittest.mock import patch as _patch
+
+    # Pretend the discovery collection has data so we reach the embedder ctor.
+    mock_store = mock_get_store.return_value
+    mock_store.count.return_value = 1
+
+    with _patch("app.agent.retriever_protocol.get_settings") as mock_settings, \
+         _patch("app.agent.retriever_protocol.Retriever") as mock_retriever:
+        mock_settings.return_value.openai_base_url = "http://llm:8000/v1"
+        mock_settings.return_value.embed_base_url = "http://ollama:11434/v1"
+        mock_settings.return_value.effective_embed_base_url = "http://ollama:11434/v1"
+        mock_settings.return_value.openai_api_key = "vllm-key"
+        mock_settings.return_value.embed_api_key = "sk-embed"
+        mock_settings.return_value.effective_embed_api_key = "sk-embed"
+        mock_settings.return_value.embed_model = "BAAI/bge-m3"
+        mock_retriever.return_value = object()
+
+        from app.agent.retriever_protocol import get_retriever
+        get_retriever()
+
+        # Assert the embedder constructor was NOT called with the LLM base_url
+        # or the LLM api_key. Either explicit kwargs or relying on defaults
+        # (no kwargs passed) are both acceptable — the key invariant is that
+        # the LLM-only values must not be forwarded to the embedder.
+        assert mock_embedder_cls.called
+        call_kwargs = mock_embedder_cls.call_args.kwargs
+        assert call_kwargs.get("base_url") != "http://llm:8000/v1"
+        assert call_kwargs.get("api_key") != "vllm-key"

@@ -165,11 +165,9 @@ def get_retriever() -> RetrieverProtocol:
         except Exception:  # noqa: BLE001
             logger.info("Chroma discovery collection missing; using stub")
             return _FilesystemStubRetriever()
-        embedder = OpenAIEmbedder(
-            base_url=settings.openai_base_url,
-            api_key=settings.openai_api_key,
-            model=settings.embed_model,
-        )
+        # C1-2:R-CONF-01,R-CONF-02 — let embedder default to effective_embed_*
+        # so EMBED_BASE_URL / EMBED_API_KEY are honoured here too.
+        embedder = OpenAIEmbedder(model=settings.embed_model)
         return Retriever(store, embedder)  # type: ignore[no-any-return]
     except Exception as exc:  # noqa: BLE001
         logger.warning("Retriever() init failed (%s); using filesystem stub", exc)

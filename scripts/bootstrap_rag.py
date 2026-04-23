@@ -48,7 +48,17 @@ def main(argv: list[str] | None = None) -> int:
         f"[bootstrap_rag] backend={settings.vector_store_backend} "
         f"path={settings.chroma_path} metric={settings.rag_distance_metric}"
     )
-    print(f"[bootstrap_rag] openai={settings.openai_base_url} model={settings.embed_model}")
+    embed_url = settings.effective_embed_base_url
+    embed_url_tag = (
+        "split"
+        if settings.embed_base_url and embed_url != settings.openai_base_url
+        else "shared"
+    )
+    print(
+        f"[bootstrap_rag] openai={settings.openai_base_url} "
+        f"embed_url={embed_url} ({embed_url_tag}) "
+        f"model={settings.embed_model}"
+    )
 
     embedder = OpenAIEmbedder()
     try:
