@@ -64,27 +64,21 @@ async def root() -> dict[str, str]:
 # ----------------------------------------------------------------------
 
 
-async def _check_openai(settings) -> dict[str, Any]:
-    """Probe the OpenAI-compatible endpoint's `GET /models`.
-
-    Works for vllm, OpenAI, LiteLLM, and any other server that implements the
-    OpenAI models endpoint. Confirms both chat + embedding models are served.
-    """
+async def _probe_models_endpoint(
+    base_url: str, api_key: str, expected: tuple[str, ...]
+) -> dict[str, Any]:
+    """GET `{base_url}/models` and verify each id in `expected` is served."""
     t0 = time.monotonic()
-    url = f"{settings.openai_base_url.rstrip('/')}/models"
-    headers = {"Authorization": f"Bearer {settings.openai_api_key}"}
+    url = f"{base_url.rstrip('/')}/models"
+    headers = {"Authorization": f"Bearer {api_key}"}
     try:
         async with httpx.AsyncClient(timeout=HEALTH_CHECK_TIMEOUT) as c:
             r = await c.get(url, headers=headers)
         latency = int((time.monotonic() - t0) * 1000)
         if r.status_code != 200:
             return {"ok": False, "latency_ms": latency, "error": f"status {r.status_code}"}
-        models = r.json().get("data") or []
-        have = {m.get("id", "") for m in models}
-        missing = [
-            m for m in (settings.llm_model, settings.embed_model)
-            if m not in have
-        ]
+        have = {m.get("id", "") for m in (r.json().get("data") or [])}
+        missing = [m for m in expected if m not in have]
         if missing:
             return {
                 "ok": False,
@@ -98,6 +92,52 @@ async def _check_openai(settings) -> dict[str, Any]:
             "latency_ms": int((time.monotonic() - t0) * 1000),
             "error": str(exc),
         }
+
+
+async def _check_openai(settings) -> dict[str, Any]:
+    """Probe the LLM (and, when split, the embedding) OpenAI-compat endpoint.
+
+    Works for vllm, OpenAI, LiteLLM, and any other server that implements the
+    OpenAI models endpoint.
+
+    R-CONF-01 / R-CONF-02 — when ``EMBED_BASE_URL`` is set to a value other
+    than ``OPENAI_BASE_URL``, the embedding endpoint is probed separately
+    using ``effective_embed_api_key``. The combined result is reported as a
+    single ``checks.openai`` dict with an ``embed`` sub-entry; top-level
+    ``ok`` is AND of both probes.
+    """
+    embed_url = settings.effective_embed_base_url
+    split = bool(settings.embed_base_url) and embed_url != settings.openai_base_url
+    if not split:
+        # Shared endpoint — single probe verifies both models.
+        return await _probe_models_endpoint(
+            settings.openai_base_url,
+            settings.openai_api_key,
+            (settings.llm_model, settings.embed_model),
+        )
+    # Split endpoint — probe LLM and embed independently.
+    llm_check, embed_check = await asyncio.gather(
+        _probe_models_endpoint(
+            settings.openai_base_url,
+            settings.openai_api_key,
+            (settings.llm_model,),
+        ),
+        _probe_models_endpoint(
+            embed_url,
+            settings.effective_embed_api_key,
+            (settings.embed_model,),
+        ),
+    )
+    combined: dict[str, Any] = {
+        "ok": bool(llm_check.get("ok") and embed_check.get("ok")),
+        "latency_ms": llm_check.get("latency_ms"),
+        "embed": embed_check,
+    }
+    if not llm_check.get("ok"):
+        combined["error"] = f"llm endpoint: {llm_check.get('error')}"
+    elif not embed_check.get("ok"):
+        combined["error"] = f"embed endpoint: {embed_check.get('error')}"
+    return combined
 
 
 async def _check_n8n(settings) -> dict[str, Any]:

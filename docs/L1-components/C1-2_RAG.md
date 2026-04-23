@@ -288,13 +288,20 @@ user_query
   - 其他欄位（`api_key`、`model`、`profile`、`ping`、`embed`、`embed_batch`）不變；`ping()` 沿用 `self.base_url`，因此自動指向正確端點。
   - 在 class docstring 補一行：引用 R-CONF-01，說明 base URL 的來源。
   - 顯式標註 `# C1-2:R-CONF-01` 於讀取 `effective_embed_base_url` 的那一行。
+- `backend/app/agent/retriever_protocol.py` — `get_retriever()` 內既有 `OpenAIEmbedder(base_url=settings.openai_base_url, ...)` 是 v1.2 起的 bug：硬寫繞過 `effective_embed_base_url`。改為 `OpenAIEmbedder(model=settings.embed_model)`，讓 embedder 自然走 `effective_embed_*` fallback。註記 `# C1-2:R-CONF-01,R-CONF-02`。
+- `backend/app/api/routes.py` — `_check_openai` 拆為 LLM + embed 兩段探測：
+  - 永遠對 `openai_base_url` 探一次 `/models`，驗證 `llm_model` 在列。
+  - 若 `settings.embed_base_url`（**原始欄位**，非 effective）非空且異於 `openai_base_url` → 額外對 `effective_embed_base_url` 用 `effective_embed_api_key` 探一次 `/models`，驗證 `embed_model` 在列；任一失敗 → 整體 `ok=False`，error 訊息標明哪一端。
+  - 若兩端共用（embed_base_url 為空）→ 維持單次探測同時驗證兩個 model（v1.1 行為）。
+  - 對外 `/health` JSON 結構不變（`openai` 仍是 bool 與 `checks.openai` dict），split 場景時 `checks.openai` 內可帶 `embed: {ok, latency_ms, error?}` sub-entry，不破壞既有消費者。
+- `backend/app/main.py` — `create_app()` 啟動 log 加入 embedding endpoint 欄位（顯示 `effective_embed_base_url` + `(shared)` 或 `(split)` 標籤）。**不**印 API key 值。
+- `scripts/bootstrap_rag.py` — `print` 同時顯示 LLM endpoint 與 `effective_embed_base_url`。
 - `.env.example` —
   - 在「`# ---------- 2. OpenAI-compatible inference endpoint ----------`」區塊，於 `OPENAI_API_KEY` 下方新增：
     ```
     # Optional: separate endpoint for the embeddings model. Leave empty to
     # reuse OPENAI_BASE_URL (v1.1 behaviour). Useful when chat is on vllm
-    # but embeddings run on Ollama/TEI/another GPU. API key is still
-    # OPENAI_API_KEY (shared). See docs/L1-components/C1-2_RAG.md §10.
+    # but embeddings run on Ollama/TEI/another GPU. See R-CONF-01.
     # EMBED_BASE_URL=
     ```
 
@@ -339,12 +346,83 @@ self.base_url = base_url or settings.effective_embed_base_url  # C1-2:R-CONF-01
 6. `llm.py` / `ChatOpenAI` 建立路徑不受 `embed_base_url` 影響（寫一個 test：設 `embed_base_url` 後檢查 LLM handle 的 base URL 仍是 `openai_base_url`）。
 
 **Security note**:
-- 觸及 C1-8 §§ 資料外流面：若使用者把 `EMBED_BASE_URL` 指向雲端，embedded 的節點 catalog（含 `display_name` / `description`）會離開本機。這是**使用者明示的部署決策**，spec 不阻擋；但 data_flow.md §6 已有類似敘述（`OPENAI_BASE_URL` 指雲端時 prompt 會外洩），本 rule 的 security impact 與之對等，不需新增 `S-` 規則。**API key 共用** `OPENAI_API_KEY` — 不新增 `EMBED_API_KEY`；若未來兩個端點需要不同 key 再另開 spec。
+- 觸及 C1-8 §§ 資料外流面：若使用者把 `EMBED_BASE_URL` 指向雲端，embedded 的節點 catalog（含 `display_name` / `description`）會離開本機。這是**使用者明示的部署決策**，spec 不阻擋；但 data_flow.md §6 已有類似敘述（`OPENAI_BASE_URL` 指雲端時 prompt 會外洩），本 rule 的 security impact 與之對等，不需新增 `S-` 規則。**API key 拆分**請參 R-CONF-02（v1.3 新增）。
 - 不得 log `embed_base_url` 值之外的任何端點憑證。`/health` 不回 `embed_base_url`（避免無意洩漏內部拓撲）。
 
 **Backward compatibility guarantee**:
 - 既有 v1.1 `.env` 只要不新增 `EMBED_BASE_URL` 即可零修改升級。
 - Chroma collection 不需要 re-ingest（embedding 模型與 prompt profile 都沒變）。僅當使用者切換到**不同模型**的 embed 端點時才需 `--force` 重建（沿用 §4 規則）。
+
+### 11. Embedding API key 獨立設定（v1.3 新增 — R-CONF-02）
+
+**Rule ID**: `R-CONF-02` — "Embed API key separable from LLM API key"
+
+**Statement**: Embedding 端點的 API key 由 `EMBED_API_KEY` 獨立決定；當 `EMBED_API_KEY` 為未設或空字串時，fallback 到 `OPENAI_API_KEY`。Chat LLM (`llm.py`) 始終使用 `OPENAI_API_KEY`，**不受 `EMBED_API_KEY` 影響**。此變更為純加法、向後相容；與 R-CONF-01 對稱。
+
+**Motivation**: R-CONF-01 解決端點分離後，仍預設兩端共用 `OPENAI_API_KEY`。當 `EMBED_BASE_URL` 指向**不同 provider**（例如 chat 在 vllm、embedding 在 OpenAI / Voyage / Cohere），各家 API key 不可共用。沒有獨立 key 等於無法使用真實的 split 拓撲。
+
+**Affected files**:
+
+- `backend/app/config.py` —
+  - 在 `embed_base_url` 旁新增：
+    ```python
+    # C1-2:R-CONF-02
+    embed_api_key: str = Field(
+        default="",
+        description=(
+            "API key for the embeddings endpoint. Empty → fall back to openai_api_key. "
+            "See C1-2 §10 / R-CONF-02."
+        ),
+    )
+    ```
+  - 在 `effective_embed_base_url` property 旁新增對稱 property：
+    ```python
+    @property
+    def effective_embed_api_key(self) -> str:
+        """R-CONF-02: fall back to openai_api_key when embed_api_key is empty."""
+        return self.embed_api_key or self.openai_api_key
+    ```
+- `backend/app/rag/embedder.py` — `OpenAIEmbedder.__init__` 中 `self.api_key = api_key or settings.openai_api_key` 改為 `self.api_key = api_key or settings.effective_embed_api_key`。註記 `# C1-2:R-CONF-02`。
+- `backend/app/api/routes.py` — split 端點下對 embed endpoint 的探測使用 `effective_embed_api_key` 而非 `openai_api_key`。
+- `.env.example` — 在 `EMBED_BASE_URL` 範例下方新增：
+  ```
+  # Optional: separate API key for the embeddings endpoint. Empty → reuse
+  # OPENAI_API_KEY. Set when EMBED_BASE_URL points to a different provider
+  # that requires its own credentials (e.g. OpenAI/Voyage/Cohere). See R-CONF-02.
+  # EMBED_API_KEY=
+  ```
+
+**Examples**:
+
+| 情境 | `OPENAI_API_KEY` | `EMBED_API_KEY` | embedder `api_key` | LLM `api_key` |
+|---|---|---|---|---|
+| 1. 共用 key（v1.2 行為） | `EMPTY` | _未設_ | `EMPTY` | `EMPTY` |
+| 2. 共用 key（空字串明確設） | `sk-vllm` | `` | `sk-vllm` | `sk-vllm` |
+| 3. 分離 key（不同 provider） | `EMPTY` (vllm) | `sk-openai-…` | `sk-openai-…` | `EMPTY` |
+| 4. 僅 chat 走雲端 | `sk-openai-…` | `EMPTY` (本地 ollama) | `EMPTY` | `sk-openai-…` |
+
+**反例（禁止）**:
+
+- ❌ 修改 `llm.py` 讀 `embed_api_key` — 破壞「chat 不受影響」承諾。
+- ❌ 把 `embed_api_key` 預設改成 `"EMPTY"` 字串 — 會吞掉「未設」訊號，等同強制覆蓋 `openai_api_key`。**預設必須為 `""`**。
+- ❌ Log `embed_api_key` 值（含 partial / masked）。只記錄是否設定（`embed_api_key: set | fallback`）。
+
+**Test scenarios**:
+
+1. `Settings(openai_api_key="A").effective_embed_api_key == "A"`（未設 embed_api_key）
+2. `Settings(openai_api_key="A", embed_api_key="").effective_embed_api_key == "A"`
+3. `Settings(openai_api_key="A", embed_api_key="B").effective_embed_api_key == "B"`
+4. Monkeypatch settings → `OpenAIEmbedder()` 不帶參數 → `embedder.api_key == effective_embed_api_key`（場景 1 與 3 各跑一次）
+5. 顯式 `OpenAIEmbedder(api_key="X")` 仍以參數為準
+6. `llm.py` `ChatOpenAI` 建立路徑不受 `embed_api_key` 影響
+
+**Security note**:
+- `EMBED_API_KEY` 與 `OPENAI_API_KEY` 同等敏感，沿用 C1-8 §S-SECRET-* 規則，**禁止** log、禁止回傳給前端。
+- `/health` 對 split embed endpoint 探測時必須用 `effective_embed_api_key` 簽 `Authorization` header，否則對需要驗證的雲端 provider 會回 401。
+
+**Backward compatibility guarantee**:
+- 既有 v1.2 `.env` 只要不新增 `EMBED_API_KEY` 即可零修改升級（fallback 邏輯確保行為等同）。
+- Chroma collection 不需要 re-ingest。
 
 ## Errors
 
@@ -369,6 +447,9 @@ self.base_url = base_url or settings.effective_embed_base_url  # C1-2:R-CONF-01
 - [ ] `QUERY_REWRITE_ENABLED=0` 時 `search_discovery` 走舊路徑（直接對原句 embed），不觸發任何 planner LLM 呼叫。
 - [ ] 切換 `EMBED_PROMPT_PROFILE` 各 profile 值（含 `auto`、`bge`、`openai`、`embeddinggemma`、`none`）後 `scripts/bootstrap_rag.py --force` 皆能成功完成。
 - [ ] R-CONF-01：`EMBED_BASE_URL` 未設時 `OpenAIEmbedder().base_url == settings.openai_base_url`；設為獨立 URL 時 `OpenAIEmbedder().base_url` 等於該值；`llm.py` 的 ChatOpenAI `base_url` **不**受 `EMBED_BASE_URL` 影響。
+- [ ] R-CONF-01 closure：`get_retriever()` 建立的 embedder `base_url` 等於 `effective_embed_base_url`（不再硬寫 `openai_base_url`）。
+- [ ] R-CONF-01 health：`EMBED_BASE_URL` 設為不可達主機時，`/health` 回 `ok=False` 且 `checks.openai.embed.error` 標明 embed 端失敗。
+- [ ] R-CONF-02：`EMBED_API_KEY` 未設時 `OpenAIEmbedder().api_key == settings.openai_api_key`；設為獨立值時等於該值；`llm.py` `ChatOpenAI` 的 `api_key` **不**受 `EMBED_API_KEY` 影響。
 
 ## 變更紀錄
 
@@ -377,3 +458,4 @@ self.base_url = base_url or settings.effective_embed_base_url  # C1-2:R-CONF-01
 | v1.0.0 | 2026-04-20 | 初版 |
 | v1.1.0 | 2026-04-21 | 新增 embedding prompt profiles、query rewrite、reranker、workflow_templates collection、has_detail-aware 降級路徑 |
 | v1.2.0 | 2026-04-23 | 新增 §10 / R-CONF-01：`EMBED_BASE_URL` 可獨立於 `OPENAI_BASE_URL`，未設則 fallback；chat LLM 不受影響，向後相容 |
+| v1.3.0 | 2026-04-23 | 補齊 R-CONF-01 runtime gap（修 retriever_protocol 硬寫、`/health` split 探測、startup log）；新增 §11 / R-CONF-02：`EMBED_API_KEY` 對稱拆分 |
