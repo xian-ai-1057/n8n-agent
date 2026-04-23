@@ -26,7 +26,6 @@ from app.models.enums import StepIntent
 from app.models.planning import StepPlan
 from app.models.workflow import BuiltNode, Connection
 
-
 # --------------------------------------------------------------------------
 # Fake retriever
 # --------------------------------------------------------------------------
@@ -159,10 +158,24 @@ def _valid_builder_output() -> BuilderOutput:
 
 
 def _invalid_builder_output() -> BuilderOutput:
-    """Missing trigger → validator V-TRIG-001 fails."""
+    """Correct types but broken connection → validator V-CONN-001 fails.
+
+    Both node types match their plan steps so _enforce_candidate_types won't
+    modify them.  The connection references a non-existent source name, which
+    the validator catches as V-CONN-001.
+    """
+    trigger_id = str(uuid4())
     set_id = str(uuid4())
     return BuilderOutput(
         nodes=[
+            BuiltNode(
+                id=trigger_id,
+                name="Schedule Trigger",
+                type="n8n-nodes-base.scheduleTrigger",
+                type_version=1.0,
+                position=[0, 0],
+                parameters={},
+            ),
             BuiltNode(
                 id=set_id,
                 name="Set",
@@ -172,7 +185,9 @@ def _invalid_builder_output() -> BuilderOutput:
                 parameters={},
             ),
         ],
-        connections=[],
+        connections=[
+            Connection(source_name="NONEXISTENT_NODE", target_name="Set"),
+        ],
     )
 
 

@@ -11,7 +11,7 @@
 
 ==== 規則（必遵） ====
 1. 每個 StepPlan 對應**恰好一個** BuiltNode；依 step_id 順序產出。
-2. BuiltNode.type 必須出自步驟的 candidate_node_types；優先選第一個。
+2. **[嚴格限制]** BuiltNode.type **只能**從該步驟的 candidate_node_types 清單中挑選，優先選 candidate_node_types[0]。**禁止**使用清單以外的任何 type，即使你認為其他 type 更合適。
 3. BuiltNode.type_version 使用提供的 NodeDefinition.type_version；**不要**自行改版本。
 4. BuiltNode.parameters **只能**使用 NodeDefinition.parameters 中列出的 name；未列出的 key 一律省略（不要猜）。
 5. 若 NodeDefinition 未提供（definitions_json 無對應項），BuiltNode.parameters 設為 {}，並在 name 後保持原步驟描述——此節點視為「空殼」，後續由使用者手動補。

@@ -106,6 +106,41 @@ def _collect_candidates(
     return candidates, messages
 
 
+def _enforce_candidate_types(
+    nodes: list[BuiltNode],
+    plan: list,
+    candidates: list[NodeCandidate],
+) -> list[BuiltNode]:
+    """Override any node type the LLM chose that isn't in the plan's candidate list.
+
+    Runs after invoke_with_timeout so validator never sees hallucinated types.
+    Preserves the LLM's typeVersion when the candidate lacks a definition (no
+    better source of truth); uses definition.type_version when available.
+    """
+    result = []
+    for i, node in enumerate(nodes):
+        if i < len(candidates) and i < len(plan):
+            step = plan[i]
+            cand = candidates[i]
+            allowed = set(step.candidate_node_types)
+            if allowed and node.type not in allowed:
+                new_version = (
+                    cand.definition.type_version
+                    if cand.definition is not None
+                    else node.type_version
+                )
+                logger.warning(
+                    "builder type violation step=%s: '%s' not in %s → correcting to '%s'",
+                    cand.step_id, node.type, list(allowed), cand.chosen_type,
+                )
+                node = node.model_copy(update={
+                    "type": cand.chosen_type,
+                    "type_version": new_version,
+                })
+        result.append(node)
+    return result
+
+
 def _render_builder_prompt(
     state: AgentState,
     plan_payload: list[dict[str, Any]],
@@ -225,6 +260,23 @@ def build_nodes(
             + candidate_messages
             + [{"role": "builder", "content": f"error: {exc}"}],
         }
+
+    result.nodes = _enforce_candidate_types(result.nodes, state.plan, candidates)
+
+    # Trim extra nodes the LLM hallucinated beyond the plan length.
+    if state.plan and len(result.nodes) > len(state.plan):
+        kept_names = {n.name for n in result.nodes[: len(state.plan)]}
+        logger.warning(
+            "builder produced %d nodes for %d-step plan; trimming extra: %s",
+            len(result.nodes),
+            len(state.plan),
+            [n.type for n in result.nodes[len(state.plan) :]],
+        )
+        result.nodes = result.nodes[: len(state.plan)]
+        result.connections = [
+            c for c in result.connections
+            if c.source_name in kept_names and c.target_name in kept_names
+        ]
 
     elapsed_ms = int((time.monotonic() - t0) * 1000)
     logger.info(
