@@ -1,6 +1,6 @@
 # n8n-agent Claude Code Setup — 部署與使用指引
 
-本套件包含 n8n-agent 專案的完整 Claude Code 開發配置:5 個 subagent + 1 份 CLAUDE.md + 2 個 skill。
+本套件包含 n8n-agent 專案的完整 Claude Code 開發配置:6 個 subagent + 1 份 CLAUDE.md + 2 個 skill。
 
 ---
 
@@ -15,6 +15,8 @@
 │   ├── frontend-engineer.md       ← Sonnet,前端實作
 │   ├── test-engineer.md           ← Sonnet,測試與 eval
 │   └── code-reviewer.md           ← Sonnet,程式碼品質審查
+├── scripts/
+│   └── git_sync.sh                ← 自動同步腳本
 └── skills/
     ├── spec-driven-workflow/
     │   └── SKILL.md               ← 工作流程契約
@@ -25,6 +27,8 @@
 
 docs/L1-components/
 └── _TEMPLATE.md                   ← Spec 條目寫作範本
+
+docs/agent_teams_master_reference.md ← Subagent 設計總覽
 
 CLAUDE.md                           ← 主 session orchestration 規則
 README.md                           ← 本檔

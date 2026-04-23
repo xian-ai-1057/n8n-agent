@@ -106,13 +106,23 @@ curl -s -X POST http://localhost:8000/chat \
 n8n_agent/
 ├── docker-compose.yml              # n8n 服務
 ├── .env.example                    # 環境變數樣板
+├── CLAUDE.md                       # Claude Code 主 session orchestration 規則
 ├── README.md / README.zh-TW.md     # 本檔
+├── .claude/
+│   ├── agents/                     # 6 個 subagent 定義（spec-guardian、backend-engineer 等）
+│   ├── scripts/
+│   │   └── git_sync.sh             # 自動同步腳本
+│   └── skills/
+│       ├── spec-driven-workflow/   # Spec-driven 工作流程契約
+│       └── traceability-audit/     # 三方一致性稽核（含 audit.py）
 ├── docs/
-│   ├── L0-system/                  # 系統層規格（架構、資料模型、DevOps）
-│   ├── L1-components/              # 元件層規格（Agent Graph / RAG / Validator / API / UI …）
-│   ├── L2-reference/               # 參考資料（n8n schema、catalog schema、prompts）
-│   ├── function_flow.md            # 函式呼叫流程（本次新增）
-│   └── data_flow.md                # 資料流程（本次新增）
+│   ├── L0-system/                  # 系統層規格（架構、資料模型、DevOps、MVP 結果、評估）
+│   ├── L1-components/              # 元件層規格（C1-1 ~ C1-8，含 _TEMPLATE.md）
+│   ├── L2-reference/               # 參考資料（n8n schema、catalog schema、prompts、templates）
+│   ├── research/                   # 研究報告（bottleneck analysis、spec gap、n8n insights）
+│   ├── agent_teams_master_reference.md  # Subagent 設計總覽
+│   ├── function_flow.md            # 函式呼叫流程
+│   └── data_flow.md                # 資料流程
 ├── data/nodes/
 │   ├── catalog_discovery.json      # 529 個節點的索引
 │   └── definitions/                # 約 30 個節點的完整參數定義
@@ -124,13 +134,16 @@ n8n_agent/
 ├── backend/app/
 │   ├── main.py                     # FastAPI 進入點
 │   ├── config.py                   # pydantic-settings
-│   ├── api/routes.py               # `/health`、`/chat`
+│   ├── api/routes.py               # `/health`、`/chat`、`/plan`
 │   ├── agent/                      # LangGraph 節點與 graph 組裝（含 OpenAI 相容 chat 包裝）
 │   ├── models/                     # Pydantic SSOT（AgentState / Workflow / …）
 │   ├── rag/                        # Chroma store、retriever、OpenAI 相容 embedder
 │   └── n8n/                        # n8n REST client
+├── backend/tests/
+│   ├── unit/                       # 單元測試（validator、assembler、RAG、timeout 等）
+│   └── integration/                # 整合測試（API contract、n8n live、RAG live）
 ├── frontend/app.py                 # Streamlit UI
-└── tests/                          # unit + integration
+└── tests/eval/                     # Eval harness（prompts.yaml）
 ```
 
 ## 常見環境變數
