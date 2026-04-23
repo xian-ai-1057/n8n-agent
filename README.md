@@ -11,7 +11,7 @@
 | 前端 | Streamlit（`:8501`） | 對話介面、呼叫後端 `/chat`、顯示產出的 workflow 與錯誤 |
 | 後端 | FastAPI + LangGraph（`:8000`） | Plan → Build → Assemble → Validate → Deploy 五階段 Agent |
 | LLM | OpenAI 相容端點（vllm / OpenAI / LiteLLM） | 規劃與節點生成（JSON schema 結構化輸出） |
-| Embedding | OpenAI 相容端點 | 將節點目錄向量化 |
+| Embedding | OpenAI 相容端點(可與 LLM 共用或獨立) | 將節點目錄向量化 |
 | 向量庫 | Chroma（`.chroma/`） | `catalog_discovery`（529 節點）、`catalog_detailed`（詳細參數） |
 | 目標系統 | n8n `1.123.x`（Docker `:5678`） | 接收部署的 workflow JSON |
 
@@ -19,9 +19,10 @@
 
 - Docker Desktop（建議 28.x 以上）
 - Python 3.11+
-- 一個 OpenAI 相容推論端點，須同時服務一個 chat 模型和一個 embedding 模型。下列皆可：
-  - vllm（`vllm serve --served-model-name ...`）——本機推薦
-  - OpenAI（`https://api.openai.com/v1`）
+- 一或兩個 OpenAI 相容推論端點。最簡單的情況是單一端點同時服務 chat 與 embedding(例如本機 vllm);也支援**將 chat 與 embedding 拆到不同端點 / 不同 provider**(R-CONF-01 / R-CONF-02),見下方〈拆分 LLM 與 Embedding 端點〉。可選的端點:
+  - vllm(`vllm serve --served-model-name ...`)——本機推薦
+  - OpenAI(`https://api.openai.com/v1`)
+  - Ollama / TEI(embedding-only 常用)
   - LiteLLM / OpenRouter / 其他 OpenAI 相容閘道
 
 檢查：
@@ -55,12 +56,17 @@ curl -s "$OPENAI_BASE_URL/models" -H "Authorization: Bearer $OPENAI_API_KEY" | j
    OPENAI_API_KEY=EMPTY                       # vllm 只要非空字串；OpenAI 則填真實金鑰
    LLM_MODEL=Qwen/Qwen2.5-7B-Instruct         # 必須對應 server 實際服務的 model id
    EMBED_MODEL=BAAI/bge-m3                    # 必須對應 server 實際服務的 model id
+   # 選填:embedding 走獨立端點時才設定,否則 fallback 到 OPENAI_BASE_URL
+   # EMBED_BASE_URL=http://localhost:11434/v1
+   # EMBED_API_KEY=
    ```
 
-   確認伺服器有同時服務上述兩個模型：
+   確認伺服器有同時服務上述兩個模型:
 
    ```bash
    curl -s http://localhost:8000/v1/models | jq '.data[].id'
+   # 若有設 EMBED_BASE_URL,另外驗證 embedding 端點:
+   # curl -s "$EMBED_BASE_URL/models" -H "Authorization: Bearer $EMBED_API_KEY" | jq '.data[].id'
    ```
 
 5. 匯入節點目錄到 Chroma（首次執行）：
@@ -152,18 +158,54 @@ n8n_agent/
 | --- | --- | --- |
 | `N8N_URL` | `http://localhost:5678` | n8n 位置 |
 | `N8N_API_KEY` | — | n8n API 金鑰（沒填則 `/chat` 走 dry-run） |
-| `OPENAI_BASE_URL` | `http://localhost:8000/v1` | OpenAI 相容推論端點（vllm / OpenAI / LiteLLM） |
-| `OPENAI_API_KEY` | `EMPTY` | Bearer token；vllm 不驗證，OpenAI 需填真實金鑰 |
-| `LLM_MODEL` | `Qwen/Qwen2.5-7B-Instruct` | 生成模型 id（需對應伺服器實際 served model） |
-| `EMBED_MODEL` | `BAAI/bge-m3` | Embedding 模型 id（需對應伺服器實際 served model） |
+| `OPENAI_BASE_URL` | `http://localhost:8000/v1` | Chat LLM 端點(vllm / OpenAI / LiteLLM);embedding 預設也走這裡 |
+| `OPENAI_API_KEY` | `EMPTY` | LLM 端點的 Bearer token;vllm 不驗證,OpenAI 需填真實金鑰 |
+| `EMBED_BASE_URL` | _(空 → fallback `OPENAI_BASE_URL`)_ | **選填** — embedding 獨立端點(R-CONF-01),例如 chat 在 vllm、embedding 在 Ollama |
+| `EMBED_API_KEY` | _(空 → fallback `OPENAI_API_KEY`)_ | **選填** — embedding 獨立 API key(R-CONF-02),跨 provider 時使用 |
+| `LLM_MODEL` | `Qwen/Qwen2.5-7B-Instruct` | 生成模型 id(需對應 LLM 伺服器實際 served model) |
+| `EMBED_MODEL` | `BAAI/bge-m3` | Embedding 模型 id(需對應 embedding 伺服器實際 served model) |
 | `CHROMA_PATH` | `.chroma` | Chroma 持久化目錄 |
 | `LLM_TIMEOUT_SECONDS` | `180` | 單次 LLM 呼叫牆鐘逾時 |
 
+## 拆分 LLM 與 Embedding 端點
+
+預設情況 LLM 與 embedding 共用 `OPENAI_BASE_URL` / `OPENAI_API_KEY`(v1.1 行為)。若你的部署拓撲把兩個模型放在不同伺服器甚至不同 provider,可分別設定:
+
+- `EMBED_BASE_URL`:embedding 專用端點。未設或空字串時 fallback 到 `OPENAI_BASE_URL`(R-CONF-01)
+- `EMBED_API_KEY`:embedding 專用 API key。未設或空字串時 fallback 到 `OPENAI_API_KEY`(R-CONF-02)
+
+Chat LLM 始終只看 `OPENAI_*`,不會被 `EMBED_*` 影響。
+
+### 常見拓撲
+
+| 情境 | `OPENAI_BASE_URL` | `OPENAI_API_KEY` | `EMBED_BASE_URL` | `EMBED_API_KEY` |
+| --- | --- | --- | --- | --- |
+| 本機 vllm 同時服務 chat + embed | `http://localhost:8000/v1` | `EMPTY` | _(空)_ | _(空)_ |
+| Chat 在 vllm、embedding 在本機 Ollama | `http://localhost:8000/v1` | `EMPTY` | `http://localhost:11434/v1` | _(空)_ |
+| Chat 在 vllm、embedding 走 OpenAI 雲端 | `http://localhost:8000/v1` | `EMPTY` | `https://api.openai.com/v1` | `sk-...` |
+| Chat / embedding 各自不同雲端 provider | `https://api.openai.com/v1` | `sk-openai-...` | `https://api.voyageai.com/v1` | `pa-voyage-...` |
+
+### 驗證
+
+啟動後端後看 log:
+
+```
+backend up: ... openai=http://localhost:8000/v1 ... embed_url=http://localhost:11434/v1 (split) embed_key=fallback ...
+```
+
+- `(shared)` = 兩端點相同;`(split)` = embedding 走獨立端點
+- `embed_key=set` = `EMBED_API_KEY` 已設定;`fallback` = 使用 `OPENAI_API_KEY`
+
+`GET /health` 在 split 拓撲下會分別探測兩個端點,任一失敗整體 `ok=False`,error 訊息會標明是 `llm endpoint` 還是 `embed endpoint` 有問題。
+
+> 注意:若切換到**不同模型**的 embedding 端點,需要重跑 `python scripts/bootstrap_rag.py --reset` 重建 Chroma collection(向量維度 / 語意空間不一致)。同模型、不同伺服器則不必重建。
+
 ## 延伸閱讀
 
-- 整體架構：[`docs/L0-system/D0-1_Architecture.md`](docs/L0-system/D0-1_Architecture.md)
-- 資料模型：[`docs/L0-system/D0-2_Data_Model.md`](docs/L0-system/D0-2_Data_Model.md)
-- Agent Graph 契約：[`docs/L1-components/C1-1_Agent_Graph.md`](docs/L1-components/C1-1_Agent_Graph.md)
-- 驗證規則：[`docs/L1-components/C1-4_Validator.md`](docs/L1-components/C1-4_Validator.md)
-- 函式流程：[`docs/function_flow.md`](docs/function_flow.md)
-- 資料流程：[`docs/data_flow.md`](docs/data_flow.md)
+- 整體架構:[`docs/L0-system/D0-1_Architecture.md`](docs/L0-system/D0-1_Architecture.md)
+- 資料模型:[`docs/L0-system/D0-2_Data_Model.md`](docs/L0-system/D0-2_Data_Model.md)
+- Agent Graph 契約:[`docs/L1-components/C1-1_Agent_Graph.md`](docs/L1-components/C1-1_Agent_Graph.md)
+- RAG / Embedding 端點拆分(R-CONF-01 / R-CONF-02):[`docs/L1-components/C1-2_RAG.md`](docs/L1-components/C1-2_RAG.md) §10–11
+- 驗證規則:[`docs/L1-components/C1-4_Validator.md`](docs/L1-components/C1-4_Validator.md)
+- 函式流程:[`docs/function_flow.md`](docs/function_flow.md)
+- 資料流程:[`docs/data_flow.md`](docs/data_flow.md)
