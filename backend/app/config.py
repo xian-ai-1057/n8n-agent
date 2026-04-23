@@ -231,7 +231,7 @@ class Settings(BaseSettings):
     @property
     def effective_embed_base_url(self) -> str:
         """Fall back to openai_base_url when embed_base_url is empty."""
-        return self.embed_base_url or self.openai_base_url
+        return self.embed_base_url
 
     @property
     def effective_embed_api_key(self) -> str:
