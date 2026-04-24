@@ -51,6 +51,10 @@ start ───▶ │ planner  │
            │ 全部 step 完成              │
            ▼                             │
       ┌───────────────────┐              │
+      │ completeness_check│              │  (v1.1-impl 新增；fix_build 不經過此節點)
+      └────┬──────────────┘              │
+           ▼                             │
+      ┌───────────────────┐              │
       │ connections       │              │
       │   _linker         │              │
       └────┬──────────────┘              │
@@ -80,10 +84,12 @@ start ───▶ │ planner  │
 
 條件邊：
 - `await_plan_approval → {build_step_loop, END}`（若使用者 reject plan，END 帶 `error="plan_rejected"`）
-- `build_step_loop → {build_step_loop, connections_linker}`（self-loop until `current_step_idx == len(plan)`）
+- `build_step_loop → {build_step_loop, completeness_check}`（self-loop until `current_step_idx == len(plan)`；v1.1-impl 改為落到 completeness_check 而非直接 connections_linker）
+- `completeness_check → connections_linker`（硬邊；見 B-COMP-01）
 - `validator → {critic, fix_build, replan, give_up}`（由 `route_by_error_class` 決定）
 - `critic → {deploy, fix_build, give_up}`
 - `replan → await_plan_approval`（重新規劃後再請使用者確認一次）
+- `fix_build → assembler`（**不** 經過 completeness_check；見 B-COMP-01）
 
 `MAX_RETRIES = 2`（planner 與 builder 共用 budget；`state.retry_count` 單一欄位遞增）。
 
@@ -220,7 +226,178 @@ def _collect_candidates(
 
 簡單線性流程（無 condition intent）可 skip LLM 走純 Python：`for i in range(len-1): connections.append(Connection(built_nodes[i].name, built_nodes[i+1].name))`。由 `should_skip_llm_linker(plan)` 判斷（plan 內無 `intent=="condition"` 即 skip）。
 
-#### 2.5 assembler
+#### 2.4a completeness_check（v1.1-impl，新增）
+
+| 項目 | 內容 |
+|---|---|
+| 讀 | `plan`, `candidates`, `built_nodes` |
+| 寫 | `built_nodes`（可能 append 一或多個 skeleton node）, `messages` |
+| LLM | 否（純 Python + 批次 RAG 查詢） |
+| 流程 | 1) 比對 `plan[*].step_id` vs `built_nodes[*].step_id`，找出缺漏的 step。2) 對缺漏 step 呼叫 `retriever.get_definitions_by_types([chosen_type])`（B-CAND-01 批次 API）取得 `NodeDefinition`。3) 為每個缺漏 step 注入 skeleton `BuiltNode`。4) 每注入一個 skeleton 寫一筆 `messages` diagnostic。 |
+
+本節點存在意義：Builder LLM 在 per-step loop 前的 v1 bulk 模式下（或 v2 per-step 偶發失誤）可能「少生成」某個 step 對應的節點，使 `built_nodes` 數量 < `plan` 數量。缺漏在 assembler / validator 階段不會直接被捕捉（validator 僅檢查現有 node 的結構與拓樸），而是以「功能不完整」的形式流到 critic 或最終交付；本節點以結構對齊的方式把「計畫但未建」的缺口填上 skeleton，讓後續 validator 能以 V-PARAM-* 規則抓到缺參數，轉為明確的 fix_build 路徑。
+
+新增節點於 `build → connections_linker` 之間插入；**fix_build 路徑不經過** completeness_check（fix loop 是在 `built_nodes` 已成形後做 surgical 修正，不應再注入 skeleton）。
+
+詳細規則見下方 B-COMP-01 ~ B-COMP-05。
+
+##### B-COMP-01: completeness_check 節點必須在 build 與 assemble 之間執行
+
+**Statement**: Graph 必須在 `build` 節點與 `assemble` 節點之間插入新節點 `completeness_check`。執行順序為 `plan → build → completeness_check → assemble → validate → deploy`。`fix_build → assemble` 硬邊保持不變，**不**經過 completeness_check。
+
+**Rationale**: completeness_check 的語意是「第一次 build 完成後的結構對齊」。fix_build 的輸入已是「previously built + validator errors」，再注入 skeleton 會與 fix 的修補語意衝突，讓 fix prompt 誤把自己產出的 node 當成 skeleton 處理。
+
+**Affected files**:
+- `backend/app/agent/graph.py`（`build_graph` 新增 `add_node("completeness_check", ...)`；將 `build → assemble` 邊改為 `build → completeness_check → assemble`；`_after_build` 條件邊的 ok 分支 target 從 `"assemble"` 改為 `"completeness_check"`；`fix_build → assemble` 不變）
+- `backend/app/agent/completeness.py`（新檔，`completeness_check_step(state, retriever) -> dict`；工廠 `_make_completeness_check_node(retriever)`）
+
+**Function signature**:
+```python
+# backend/app/agent/completeness.py
+def completeness_check_step(
+    state: AgentState, retriever: RetrieverProtocol
+) -> dict[str, Any]:
+    """Inject skeleton BuiltNode for plan steps missing from built_nodes.
+
+    Returns a delta dict with (at most) updated built_nodes and messages.
+    If no steps are missing, returns {} (no-op; fast path).
+    """
+```
+
+**Examples**:
+- ✅ `plan=[s1,s2,s3]`、`built_nodes=[bn(step_id=s1), bn(step_id=s2), bn(step_id=s3)]` → no-op，回傳 `{}`
+- ✅ `plan=[s1,s2,s3]`、`built_nodes=[bn(step_id=s1), bn(step_id=s3)]` → 為 s2 注入 1 個 skeleton,`built_nodes` 最終 3 個
+- ❌ 不允許：建圖時忘了把 `_after_build` 的 `"assemble"` target 改到 `"completeness_check"`,導致節點被跳過
+
+**Test scenarios**: 見 B-COMP-05。
+
+**Security note**: N/A
+
+##### B-COMP-02: BuiltNode 與 BuilderStepOutput 新增 step_id 欄位
+
+**Statement**: `BuiltNode` 必須新增可選欄位 `step_id: str | None = None`。此欄位 **不得** 序列化到 n8n workflow JSON（n8n 端不認此欄位）；assembler 在 emit n8n JSON 時必須 drop 它。builder prompt 輸出 schema (`BuilderOutput` / `BuilderStepOutput`) 必須要求 LLM 在每個 node 輸出對應的 `step_id`。若 LLM 未輸出 step_id（欄位為 None），completeness_check 視為 **無法對齊**，該 node 不被視為涵蓋任何 step（等同全部 step 缺失）。
+
+**Rationale**: 現有 builder 回傳的 `BuiltNode` 沒有回指對應的 plan step,只能靠「位置 index 一一對應」做對齊,遇到 LLM 少生成或順序錯亂即失準。`step_id` 為穩定 key,比 `name`（由 assembler 後處理）更早可用。
+
+**Affected files**:
+- `backend/app/models/workflow.py`（`BuiltNode` 加 `step_id: str | None = None`，並於 `model_config` 確認 `populate_by_name=True`）
+- `backend/app/agent/builder.py`（`BuilderOutput` / `BuilderStepOutput` schema 加 `step_id`；prompt 新增要求「每個 node 輸出 step_id，值須等於對應 StepPlan.step_id」）
+- `backend/app/agent/prompts/builder.md`（或等效 per-step prompt）加 few-shot 展示 step_id 輸出
+- `backend/app/agent/assembler.py`（emit n8n JSON 時使用 `model_dump(exclude={"step_id"})` 或等效方式避免外洩）
+
+**Function signature**:
+```python
+class BuiltNode(BaseModel):
+    # ... existing fields
+    step_id: str | None = Field(
+        default=None,
+        description=(
+            "Back-reference to StepPlan.step_id that this node implements. "
+            "Internal-only; not serialised to n8n wire format."
+        ),
+    )
+```
+
+**Examples**:
+- ✅ LLM 輸出 `{"name": "HTTP Request", "type": "...", "step_id": "step_2", ...}` → `BuiltNode.step_id="step_2"`
+- ✅ assembler emit n8n JSON：`{"name": "HTTP Request", "type": "...", "typeVersion": 1, ...}`（無 step_id 欄位）
+- ❌ assembler 若把 step_id 寫入 workflow JSON → n8n 端部署可能噴不認識的欄位（視版本而定）
+
+**Test scenarios**: 見 B-COMP-05。
+
+**Security note**: N/A。但：step_id 從 LLM 輸出回收，不得直接 trust 作為檔案路徑 / URL；在本 spec 語境僅做字串比對,OK。
+
+##### B-COMP-03: Skeleton 注入規則
+
+**Statement**: 對每個 `plan[i].step_id` 不存在於任何 `built_nodes[*].step_id` 的 step，completeness_check 必須注入一個 skeleton `BuiltNode`，欄位規則為：
+
+| 欄位 | 值 |
+|---|---|
+| `step_id` | `plan[i].step_id` |
+| `type` | 對應 `candidates[*]` 中 `step_id==plan[i].step_id` 的 `chosen_type` |
+| `type_version` | `candidate.definition.type_version` 若 `definition is not None`；否則 `1.0`（float） |
+| `name` | `f"Missing step {step_id}"`（assembler 後續會統一重命名；此值僅為 placeholder 避免 validator name 衝突） |
+| `parameters` | `{"_completeness_injected": "TODO: fill required parameters for this node"}` |
+| `position` | `[0.0, 0.0]`（assembler 會重算 layout） |
+| 其他欄位 | 全部使用 model 預設值（None 或 default factory） |
+
+若 `candidates` 中找不到對應 `step_id`（planner / builder 間不一致），視為**無法注入**，log WARNING 後 **skip 該 step**，不中斷流程；最後 `built_nodes` 數量仍可能 < `plan` 數量，讓 validator 自然抓到拓樸錯誤並走 fix_build。
+
+每注入一個 skeleton，`state.messages` append 一筆：
+```python
+{"role": "completeness", "content": f"injected skeleton for missing step {step_id} (type={chosen_type})"}
+```
+
+若 skip，append：
+```python
+{"role": "completeness", "content": f"skip missing step {step_id}: no matching candidate"}
+```
+
+**Rationale**:
+- `_completeness_injected` 參數讓 validator V-PARAM-* 幾乎必抓到錯（required 欄位缺失）→ 明確觸發 fix_build，比悄悄放空 dict 更能暴露問題。
+- `type_version` fallback 到 `1.0` 與 builder 現行處理無 definition 時的行為一致。
+- `name` 使用明顯的 "Missing step ..." 便於 debug log。
+
+**Affected files**:
+- `backend/app/agent/completeness.py`（實作注入邏輯）
+
+**Function signature**:
+```python
+def _build_skeleton(
+    step: StepPlan, candidate: NodeCandidate | None
+) -> BuiltNode | None:
+    """Return None iff candidate is None (→ skip logic per B-COMP-03)."""
+```
+
+**Examples**:
+- ✅ Missing s2, candidate.chosen_type="n8n-nodes-base.set", definition.type_version=3.4
+  → skeleton: `{step_id:"s2", name:"Missing step s2", type:"n8n-nodes-base.set", typeVersion:3.4, position:[0,0], parameters:{"_completeness_injected":"TODO: fill required parameters for this node"}}`
+- ✅ Missing s2, candidate.chosen_type 存在但 definition is None
+  → skeleton: `{..., typeVersion:1.0, ...}`
+- ✅ Missing s2, 無對應 candidate → skeleton=None,skip 並寫 diagnostic message
+
+**Test scenarios**: 見 B-COMP-05。
+
+**Security note**: `_completeness_injected` 是保留 key，**不得**與真實 n8n parameter key 衝突（底線前綴 + 明確命名降低碰撞風險）。validator 端無需特別處理此 key，讓它照常觸發 required-param 錯誤即可。
+
+##### B-COMP-04: RAG 查不到時 graceful skip
+
+**Statement**: completeness_check 在對缺漏 step 查 `retriever.get_definitions_by_types(types)` 時，若 batch 回傳值對應 key 為 None（RAG 無此 type 的 detail），**不得**中斷或 raise；須退到 `definition=None` 路徑（依 B-COMP-03 使用 `type_version=1.0`），並寫一筆 `messages` diagnostic：
+```python
+{"role": "completeness", "content": f"no RAG detail for type {chosen_type} (step {step_id}); injecting with typeVersion=1.0"}
+```
+
+**Rationale**: detailed catalog 覆蓋率 ~30/529；若 chosen_type 不在已收錄範圍，仍應完成結構對齊,不要讓整個 completeness_check 失敗掉整條 pipeline。
+
+**Affected files**:
+- `backend/app/agent/completeness.py`
+
+**Examples**:
+- ✅ `retriever.get_definitions_by_types(["a.unknown"])` → `{"a.unknown": None}` → skeleton 以 type_version=1.0 注入 + diagnostic
+- ❌ 不允許：raise、或直接 skip 該 step（skip 僅在無 candidate 時，B-COMP-03）
+
+**Test scenarios**: 見 B-COMP-05。
+
+**Security note**: N/A
+
+##### B-COMP-05: Test scenarios（集中列出）
+
+test-engineer 需實作以下測試（pytest），所有檔案放在 `backend/tests/`：
+
+1. **test_completeness_noop**：`plan=[s1,s2]`, `built_nodes` 兩個 node 的 `step_id` 完整對齊 → `completeness_check_step` 回傳 `{}`，`built_nodes` 長度不變，無 completeness 角色 message。
+2. **test_completeness_single_missing**：`plan=[s1,s2,s3]`, `built_nodes` 缺 s2（只有 s1、s3）→ 回傳 delta 中 `built_nodes` 長度 3；s2 位置的 skeleton `type_version==definition.type_version`；`parameters` 含 `_completeness_injected` key；有 1 筆 `role="completeness"` message。
+3. **test_completeness_multiple_missing**：`plan=[s1..s4]`, `built_nodes` 只有 s1 → 3 個 skeleton 被注入；messages 有 3 筆 completeness diagnostic。
+4. **test_completeness_rag_miss**：缺 s2，retriever mock `get_definitions_by_types` 回 `{"x.unknown": None}` → skeleton `type_version==1.0`；有額外一筆 "no RAG detail" diagnostic。
+5. **test_completeness_no_candidate**：缺 s2,但 `state.candidates` 中找不到 step_id=s2 的 candidate → 不注入 skeleton；有一筆 "skip missing step s2" diagnostic；`built_nodes` 長度仍少於 plan（後續由 validator 自然抓）。
+6. **test_completeness_builtnode_without_step_id**：`built_nodes` 中某個 node `step_id is None`（模擬 LLM 未輸出）→ 此 node 不涵蓋任何 step；completeness 把所有 plan step 都視為 missing 並嘗試注入。
+7. **test_graph_wiring_completeness_inserted**：build_graph 後 inspect node list 含 `completeness_check`；`build` 節點成功後的下一個節點是 `completeness_check`（非 `assemble`）；`fix_build` 的出邊仍為 `assemble`（不經 completeness_check）。
+8. **test_assembler_drops_step_id**：`BuiltNode(step_id="s1", ...)` 經 assembler 後產出的 workflow JSON dict **不包含** `step_id` key。
+
+Eval harness 另加 1 條 prompt case（`tests/eval/prompts.yaml`）：輸入會觸發 ≥4 step 的 plan，斷言最終 `len(workflow.nodes) == len(state.plan)`；即使 LLM 少生成也能因 completeness_check 補齊。
+
+**Security note**: N/A
+
+
 
 | 項目 | 內容 |
 |---|---|
@@ -463,6 +640,7 @@ def build_graph(
 | `planning_timeout` | planner LLM 逾時 | planner |
 | `building_failed` | builder LLM 其他例外 | builder |
 | `building_timeout` | builder LLM 逾時（新增） | builder（B-TIMEOUT-01 抛） |
+| `completeness_failed` | completeness_check 無法完成結構對齊（罕見） | completeness_check（Errors §C） |
 | `assembler_*` | assembler guard 錯誤 | assembler |
 | `validator_*` | validator 執行錯誤（非 ValidationIssue） | validator_node |
 | `deploy_failed` | n8n client 錯誤 | deployer |
@@ -505,6 +683,23 @@ def _after_build(state: AgentState) -> str:
 
 這條 edge 要在 `build → assemble` 硬邊處改為 conditional；測試 `test_graph_wiring.py` 需加一例：builder raise BuilderTimeoutError 時 assembler 節點從未被呼叫（可用 spy）。
 
+**v1.1-impl 補充（B-COMP-01 上線後）**：`_after_build` 條件邊的 ok 分支 target 從 `"assemble"` 改為 `"completeness_check"`。timeout/failed 仍直接 `"give_up"`，不經 completeness_check。對應測試 `test_graph_wiring.py` 需：(a) 新增驗證 `build` ok → `completeness_check` 路徑；(b) 保持 `building_timeout` / `building_failed` 下 completeness_check 節點從未被呼叫。
+
+### Errors §C. completeness_check 節點錯誤（v1.1-impl）
+
+completeness_check 的設計目標之一就是 **graceful**。以下為明確規範：
+
+| 場景 | 行為 |
+|---|---|
+| RAG (`get_definitions_by_types`) raise 任意例外 | catch 後把該 batch 視為全部 None；繼續流程；`messages` append diagnostic。**不**寫 `state.error`。 |
+| `plan` 為 None 或空 list | 立即 no-op 回傳 `{}`；不報錯。 |
+| `candidates` 為 None 或空 list | 無法為任何 missing step 注入；每個 missing step 走 skip 路徑（B-COMP-03）。 |
+| `BuiltNode.step_id=None`（builder 未輸出） | 該 node 視為不涵蓋任何 step；其他 step 照常比對/注入。 |
+| 同一 step_id 在 `built_nodes` 出現 >1 次 | 視為已涵蓋（不注入 skeleton）；不視為錯誤。 |
+| 注入 skeleton 時 Pydantic 驗證失敗（理論上不應發生） | raise `RuntimeError`，寫 `state.error="completeness_failed: {detail}"`；graph 路由至 give_up（需在 graph.py 加 try/except 並有對應條件邊或 node-level guard）。 |
+
+新增 `state.error` prefix：`completeness_failed`（補入 B-TIMEOUT-02 表）。
+
 ## Acceptance Criteria
 
 - [ ] Graph 以 10 個節點 + 4 條件邊實作完成，`compile()` 後可 `invoke()` 或 `stream()`。
@@ -518,6 +713,10 @@ def _after_build(state: AgentState) -> str:
 - [ ] `retry_count` 在 replan + fix_build 混合情境下正確累計，不超過 `MAX_RETRIES`。
 - [ ] 全流程 log 包含 `stage` / `retry_count` / `current_step_idx` / `latency_ms`。
 - [ ] 10 筆 D0-5 golden prompts 中 ≥ 7 筆直接 `validator.ok & critic.pass`（基線目標，後續迭代拉高）。
+- [ ] `completeness_check` 節點在 `build → connections_linker/assemble` 之間被呼叫一次；`fix_build` 路徑繞過它（B-COMP-01）。
+- [ ] `BuiltNode.step_id` 欄位不出現於最終 n8n workflow JSON（B-COMP-02）。
+- [ ] 當 builder 少生成一個 step 對應的節點，completeness_check 成功注入 skeleton，最終 `len(built_nodes) == len(plan)`（B-COMP-03）。
+- [ ] RAG 對 missing step 的 type 查不到 detail 時，skeleton 以 `type_version=1.0` 注入，流程不中斷（B-COMP-04）。
 
 ## 變更紀錄
 
@@ -526,3 +725,4 @@ def _after_build(state: AgentState) -> str:
 | v1.0.0 | 2026-04-20 | 初版：5 節點 + 1 條件邊、bulk builder |
 | v2.0.0 | 2026-04-21 | 重大結構變更：per-step builder 迴圈、rule_class 分流路由、HITL plan confirm、整合 C1-7 critic 與 C1-2 v1.1 templates。棄用 `BuilderOutput`，拆為 `BuilderStepOutput` + `ConnectionsOutput` |
 | v2.0.1 | 2026-04-22 | 新增 v1.1-impl 過渡條目（適用 v1 bulk builder 現行 code，v2 重寫後自動繼承）：B-TIMEOUT-01（builder timeout 必 raise 不退化空 list）、B-TIMEOUT-02（`state.error` category prefix 規範）、B-CAND-01（retriever 批次 definitions 查詢）、B-CAND-02（candidate fallback 迴圈）。對應 backend bottleneck analysis P0/P1 條目 |
+| v2.0.2 | 2026-04-24 | 新增 completeness_check 節點（v1.1-impl）：B-COMP-01（插入點與 fix_build 繞過）、B-COMP-02（`BuiltNode.step_id` 欄位）、B-COMP-03（skeleton 注入規則）、B-COMP-04（RAG miss graceful skip）、B-COMP-05（集中測試清單）。圖結構與條件邊、Errors §C、Acceptance Criteria 同步更新。`state.error` prefix 表新增 `completeness_failed` |

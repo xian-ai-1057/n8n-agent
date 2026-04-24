@@ -412,6 +412,30 @@ prompts:
       deploy: skip
     tags: [schedule_trigger, output_email, detail_missing_type]
 
+  # ─────────────────────────── completeness_check regression ──────────────
+  # C1-1:B-COMP-03 — node count must equal plan step count (end-to-end gate)
+
+  - id: completeness_ops_four_node_pipeline
+    message: |
+      每天早上 8 點把 Google Sheets 的銷售資料整理後寄 email 給主管，
+      同時也發 Slack 訊息給 ops 頻道
+    expect:
+      plan:
+        min_steps: 4
+        required_intents: [trigger, action, output]
+        required_types:
+          - n8n-nodes-base.scheduleTrigger
+          - n8n-nodes-base.googleSheets
+          - n8n-nodes-base.gmail
+          - n8n-nodes-base.slack
+      # Completeness invariant: built node count must equal plan step count.
+      # Evaluated by: len(final_workflow.nodes) == len(state.plan)
+      completeness_invariant: nodes_equal_plan_steps
+      validator_ok: true
+      critic_pass: true
+      deploy: skip
+    tags: [schedule_trigger, output_sheet, output_email, output_slack, multi_step_chain]
+
   # ─────────────────────────── multi-step long chain ────────────────────────
 
   - id: full_pipeline_schedule_to_sheet_and_slack
