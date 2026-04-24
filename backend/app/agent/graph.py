@@ -11,6 +11,7 @@ from ..config import get_settings
 from ..models.agent_state import AgentState
 from .assembler import assemble_step
 from .builder import BuilderTimeoutError, build_nodes
+from .completeness import _make_completeness_check_node  # C1-1:B-COMP-01
 from .deployer import deploy_step
 from .planner import plan_step
 from .retriever_protocol import RetrieverProtocol, get_retriever
@@ -72,13 +73,14 @@ def _after_build(state: AgentState) -> str:  # C1-1:B-TIMEOUT-01
 
     Route to give_up immediately on timeout or unrecoverable build failure,
     skipping assemble/validate so they never process empty node lists.
+    ok-branch routes to completeness_check (C1-1:B-COMP-01).
     """
     if state.error and (
         state.error.startswith("building_timeout:")
         or state.error.startswith("building_failed:")
     ):
         return "give_up"
-    return "assemble"
+    return "completeness_check"  # C1-1:B-COMP-01
 
 
 def _after_validate(state: AgentState) -> str:
@@ -132,6 +134,7 @@ def build_graph(
     g = StateGraph(AgentState)
     g.add_node("plan", _make_plan_node(r))
     g.add_node("build", _make_build_node(r))
+    g.add_node("completeness_check", _make_completeness_check_node(r))  # C1-1:B-COMP-01
     g.add_node("assemble", assemble_step)
     g.add_node("validate", validate_step)
     g.add_node("fix_build", _make_fix_build_node(r))
@@ -143,8 +146,9 @@ def build_graph(
     g.add_conditional_edges(
         "build",
         _after_build,
-        {"assemble": "assemble", "give_up": "give_up"},
+        {"completeness_check": "completeness_check", "give_up": "give_up"},  # C1-1:B-COMP-01
     )
+    g.add_edge("completeness_check", "assemble")  # C1-1:B-COMP-01
     g.add_edge("assemble", "validate")
 
     g.add_conditional_edges(
@@ -161,7 +165,11 @@ def build_graph(
     g.add_edge("deploy", END)
     g.add_edge("give_up", END)
 
-    return g.compile()
+    compiled = g.compile()
+    # C1-1:B-COMP-01 — expose .graph for test introspection (langchain_core Graph
+    # includes both hard and conditional edges as indexable Edge tuples).
+    compiled.graph = compiled.get_graph()  # type: ignore[attr-defined]
+    return compiled
 
 
 def _dry_run_deploy(state: AgentState) -> dict[str, Any]:

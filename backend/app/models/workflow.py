@@ -30,6 +30,12 @@ class BuiltNode(BaseModel):
     retry_on_fail: bool | None = Field(default=None, alias="retryOnFail")
     notes: str | None = None
     notes_in_flow: bool | None = Field(default=None, alias="notesInFlow")
+    # C1-1:B-COMP-02
+    step_id: str | None = Field(
+        default=None,
+        exclude=True,  # C1-1:B-COMP-02 — internal only, never serialised to n8n
+        description="Internal: maps this node back to its StepPlan.step_id.",
+    )
 
     model_config = {"populate_by_name": True}
 

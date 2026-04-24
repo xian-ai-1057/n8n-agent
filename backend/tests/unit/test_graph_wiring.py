@@ -141,6 +141,7 @@ def _valid_builder_output() -> BuilderOutput:
                 type_version=1.0,
                 position=[0, 0],
                 parameters={},
+                step_id="step_1",  # C1-1:B-COMP-02 — tells completeness_check this step is covered
             ),
             BuiltNode(
                 id=set_id,
@@ -149,6 +150,7 @@ def _valid_builder_output() -> BuilderOutput:
                 type_version=3.4,
                 position=[0, 0],
                 parameters={},
+                step_id="step_2",  # C1-1:B-COMP-02 — tells completeness_check this step is covered
             ),
         ],
         connections=[
@@ -175,6 +177,7 @@ def _invalid_builder_output() -> BuilderOutput:
                 type_version=1.0,
                 position=[0, 0],
                 parameters={},
+                step_id="step_1",  # C1-1:B-COMP-02 — tells completeness_check this step is covered
             ),
             BuiltNode(
                 id=set_id,
@@ -183,6 +186,7 @@ def _invalid_builder_output() -> BuilderOutput:
                 type_version=3.4,
                 position=[0, 0],
                 parameters={},
+                step_id="step_2",  # C1-1:B-COMP-02 — tells completeness_check this step is covered
             ),
         ],
         connections=[

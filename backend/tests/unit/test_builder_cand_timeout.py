@@ -221,15 +221,15 @@ def test_b_timeout_01_after_build_routes_give_up_on_building_failed():
 
 
 def test_b_timeout_01_after_build_routes_assemble_on_no_error():
-    """B-TIMEOUT-01: no error → assemble."""
+    """B-TIMEOUT-01: no error → completeness_check (C1-1:B-COMP-01)."""
     state = AgentState(user_message="x", error=None)
-    assert _after_build(state) == "assemble"
+    assert _after_build(state) == "completeness_check"  # C1-1:B-COMP-01
 
 
 def test_b_timeout_01_after_build_routes_assemble_on_other_error():
-    """B-TIMEOUT-01: unrelated error prefix does NOT trigger give_up → assemble."""
+    """B-TIMEOUT-01: unrelated error prefix does NOT trigger give_up → completeness_check (C1-1:B-COMP-01)."""
     state = AgentState(user_message="x", error="some_other_error: details")
-    assert _after_build(state) == "assemble"
+    assert _after_build(state) == "completeness_check"  # C1-1:B-COMP-01
 
 
 # ---------------------------------------------------------------------------
