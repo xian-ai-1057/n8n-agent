@@ -77,7 +77,16 @@ async def _probe_models_endpoint(
         latency = int((time.monotonic() - t0) * 1000)
         if r.status_code != 200:
             return {"ok": False, "latency_ms": latency, "error": f"status {r.status_code}"}
-        have = {m.get("id", "") for m in (r.json().get("data") or [])}
+        # Some OpenAI-compat providers list IDs with a prefix (e.g. Gemini's
+        # `models/gemini-3.1-flash-lite-preview`) while users configure the
+        # bare name. Accept either form.
+        have: set[str] = set()
+        for m in r.json().get("data") or []:
+            mid = m.get("id", "")
+            if mid:
+                have.add(mid)
+                if "/" in mid:
+                    have.add(mid.rsplit("/", 1)[1])
         missing = [m for m in expected if m not in have]
         if missing:
             return {
