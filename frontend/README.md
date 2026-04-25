@@ -34,6 +34,21 @@ Then open <http://localhost:8501>.
 ## UX
 
 - Sidebar exposes backend URL, n8n URL, health-check button, clear-history.
-- Main pane is a chat: each assistant turn shows status, "Open in n8n" link
-  button, collapsed workflow JSON, collapsed plan + retry count.
+- **Session ID** (`C1-6:CHAT-UI-01`): `session_id` is written from the first
+  server response and re-sent on every subsequent turn. Clearing history also
+  resets the session (new conversation). A collapsed "Debug: Session ID"
+  expander in the sidebar shows the current id.
+- Main pane is a chat: each assistant turn shows `assistant_text` as the
+  primary content, status, "Open in n8n" link (only when deployed), collapsed
+  workflow JSON, collapsed tool-calls trace (debug), collapsed plan + retry
+  count.
+- **Plan approval card** (`C1-6:CHAT-UI-03`): when the backend returns
+  `status="awaiting_plan_approval"`, a bordered card appears under the latest
+  assistant message with "Confirm / Edit / Cancel" buttons. Confirm and Cancel
+  inject a fixed phrase as the next user turn; Edit shows a free-text area.
+- **Error handling** (`C1-6:CHAT-UI-02`):
+  - HTTP 504 / client timeout → toast "處理逾時，請重試"; `session_id` preserved.
+  - HTTP 404 → "session 已過期，將開新 session"; `session_id` cleared.
+  - HTTP 400 → shows backend `error_message`.
+  - `status="error"` in 200 response → `st.error` inline; chat continues.
 - The HTTP client timeout is 200 s (backend budget is 180 s).

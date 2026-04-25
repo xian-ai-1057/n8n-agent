@@ -1,6 +1,6 @@
 # C1-6：UI（Streamlit）
 
-> **版本**: v2.0.0 ｜ **狀態**: Draft ｜ **前置**: C1-5 v2.0, C1-1 v2.0, C1-4 v1.1, C1-7
+> **版本**: v2.0.2 ｜ **狀態**: Draft ｜ **前置**: C1-5 v2.0.3, C1-1 v2.0.4, C1-4 v1.1, C1-7, C1-9 v1.0.1
 
 ## Purpose
 
@@ -280,6 +280,95 @@ st.session_state.last_failed_workflow_json: dict | None
 
 ---
 
+### CHAT-UI-01: Streamlit Session ID 維護(對應 C1-9 chat-first)
+
+**Statement**: `frontend/app.py` 使用 `st.session_state.session_id` 追蹤目前 chat session id。規則:
+
+1. **初始值**: `None`(尚未與 backend 建立 session)。
+2. **回填**: 每次 `POST /chat` 收到 `ChatResponse` 後,把 `response.session_id` 寫入 `st.session_state.session_id`。
+3. **送出**: 每次 `POST /chat` 在 request body 帶入當前 `session_id`(若有);第一次為 `None`,backend 會配發新 id。
+4. **清空**: 「清空對話歷史」按鈕同步 reset `session_id = None`(等同開新 session)。
+5. **Debug expander**: sidebar 提供「Debug: Session ID」expander(預設 collapsed),顯示 `st.session_state.session_id`,方便 QA / 客服除錯。
+
+**Affected files**:
+- `frontend/app.py`(初始化、回填、送出、清空、debug expander)
+
+**Examples**:
+- ✅ 第一次 prompt → 不帶 session_id;backend 配發 `abc12345...`;UI 把 id 存起來
+- ✅ 第二次 prompt → 帶上次 id;backend 沿用同 session
+- ✅ 點「清空對話歷史」→ history 清空 + session_id 重設 None;下次 prompt 等同新 session
+
+**Test scenarios**(frontend 目前無自動化測試;以人工 / smoke 為主):
+- 連續送 2 prompt 觀察 backend log 同一 session_id
+- 「清空」後送新 prompt 觀察 backend log 為新 session_id
+- Debug expander 顯示 session_id 正確
+
+**Security note** — session_id pattern 由 backend C1-9:CHAT-SEC-01 守住;frontend 不另驗。
+
+---
+
+### CHAT-UI-02: 新 ChatResponse shape 渲染
+
+**Statement**: `frontend/app.py` 依 `ChatResponse`(C1-9:CHAT-API-01)的擴充欄位渲染 assistant message:
+
+1. **`assistant_text`** 為主文(取代 v1 的 workflow URL 直接置頂);無 `assistant_text` 時 fallback 至既有 `_render_assistant` 邏輯。
+2. **`status` 路由顯示**:
+   - `"chat"` / `"awaiting_plan_approval"` → 純文字
+   - `"completed"` / `"deployed"` → 顯示 `workflow_url` 連結(若有)+ `Open in n8n` 按鈕 + `workflow_json` expander
+   - `"error"` / `"rejected"` → `st.error(error_message)`(對話可繼續,不 abort)
+3. **`tool_calls`**:非空時於 expander(預設 collapsed)顯示 `[{name, args_summary, result_status}, ...]`(觀察用)。
+4. **HTTP 錯誤碼處理**:
+   - **504**: 保留 `session_id`(可重試),顯示「逾時 (504)」訊息
+   - **404**: 清除 `session_id`(session 已過期),提示重啟對話
+   - **400**: `st.error(error_message)`(message_too_long 等)
+   - **422 / 500**: 一般錯誤 banner
+
+**Affected files**:
+- `frontend/app.py`(`_render_assistant`、`_send_to_backend` 內 status code 路徑)
+
+**Examples**:
+- ✅ status="chat" + assistant_text="Hi!" → 純文字泡泡
+- ✅ status="deployed" + assistant_text="已部署" + workflow_url 填值 → 文字 + URL + JSON expander
+- ✅ status="error" + error_message="..." → `st.error(...)`,session_id 保留
+- ✅ HTTP 504 → 「逾時」訊息,session_id 不清
+
+**Test scenarios**(frontend smoke):
+- mock backend 回 200 / status=deployed → workflow_url 顯示
+- mock backend 回 504 → session_id 仍在
+- mock backend 回 404 → session_id 變 None
+
+**Security note** — assistant_text 已過 backend C1-8 redaction;frontend 直接 render(無 raw HTML 風險,Streamlit 預設 escape)。
+
+---
+
+### CHAT-UI-03: Plan 確認 UI
+
+**Statement**: 當 backend 回 `status="awaiting_plan_approval"` 時,在最新 assistant message 後渲染 bordered plan card:
+
+1. **Card 內容**: 列出每 step 的 `step_id`、`description`、`candidate_node_types`(逗號分隔)。
+2. **三個按鈕**:
+   - **確認執行** → 自動送 message `"確認執行"`(等同使用者打字確認)
+   - **我要修改** → 顯示 `st.text_area`,使用者輸入修改建議,送出時當一般 chat message 送
+   - **取消** → 自動送 message `"我不想建立這個 workflow"`
+3. **State machine**: `st.session_state.awaiting_plan_approval` (bool)、`st.session_state.pending_plan` (list)、`st.session_state.pending_plan_action` (str | None)、`st.session_state.show_edit_input` (bool) 四個 flag 協作。
+4. **Plan card 持續顯示直到 backend status 不再為 `awaiting_plan_approval`**(deployed / rejected / 新 chat 都會清掉)。
+
+**Affected files**:
+- `frontend/app.py`(plan card render + button handler + pending action loop)
+
+**Examples**:
+- ✅ status=awaiting_plan_approval → card 顯示;按「確認執行」→ 下一輪 backend 跑 confirm_plan(approved=true)
+- ✅ 按「我要修改」→ 顯示 textarea,使用者輸入「step 2 改用 Slack」送出 → backend chat layer 由 LLM 翻譯成 confirm_plan(approved=True, edits=[...])
+- ✅ 按「取消」→ 下一輪 backend 跑 confirm_plan(approved=false),status 變 rejected,card 消失
+
+**Test scenarios**(smoke):
+- mock 連續兩 turn 達 awaiting_plan_approval → card 顯示;按「確認」→ 第二次 POST body 含 message="確認執行"
+- 按「取消」→ 卡片消失,next assistant 顯示 rejected 訊息
+
+**Security note** — plan 內容已過 backend sanitize;按鈕送出的 hardcoded message 不接 user input(避免 injection);「我要修改」的 textarea 內容被當一般 chat message,backend 在 dispatcher 入口 sanitize。
+
+---
+
 ## 變更紀錄
 
 | 版本 | 日期 | 變更 |
@@ -287,3 +376,4 @@ st.session_state.last_failed_workflow_json: dict | None
 | v1.0.0 | 2026-04-20 | 初版：同步 /chat、workflow 連結、錯誤 banner |
 | v2.0.0 | 2026-04-21 | 接入 SSE、HITL plan review 表、critic 結果獨立顯示、rule_class 顏色標記、suggested_fix 提示、templates sidebar；backend 為 v1 JSON 時自動降級 |
 | v2.0.1 | 2026-04-22 | 新增 traceability 條目：U-PLAN-01（Streamlit 顯示 assistant.plan，搭配 C1-5:A-RESP-01）、U-WEB-01（React 前端由 backend 同源供應，搭配 C1-5:A-WEB-01）|
+| v2.0.2 | 2026-04-25 | 為 C1-9 chat-first pipeline 補 frontend traceability:CHAT-UI-01(`session_id` 維護 + Debug expander)、CHAT-UI-02(新 ChatResponse shape 渲染 + status 路由 + HTTP error code 處理)、CHAT-UI-03(Plan 確認 card + 三個按鈕 + 修改 textarea)。對應 frontend/app.py 已落地的暫時 ID 正式化 |

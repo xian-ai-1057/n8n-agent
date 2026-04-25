@@ -201,6 +201,51 @@ class Settings(BaseSettings):
     )
 
     # ------------------------------------------------------------------
+    # Chat layer (C1-9)
+    # ------------------------------------------------------------------
+    # C1-9:CHAT-CFG-01
+    chat_model: str | None = Field(
+        default=None,
+        description=(
+            "Chat LLM model id. None = fall back to planner_model (or llm_model). "
+            "Use effective_chat_model property to resolve the final value."
+        ),
+    )
+    # C1-9:CHAT-CFG-01
+    chat_temperature: float = Field(
+        default=0.3,
+        description=(
+            "Chat LLM sampling temperature. Slightly higher than planner (0) "
+            "to allow natural conversation."
+        ),
+    )
+    # C1-9:CHAT-CFG-01
+    chat_max_history: int = Field(
+        default=40,
+        description=(
+            "Maximum number of messages kept in chat history per session "
+            "(see CHAT-DISP-03). Oldest messages are dropped when exceeded."
+        ),
+    )
+    # C1-9:CHAT-CFG-01
+    chat_session_ttl_s: int = Field(
+        default=1800,
+        description=(
+            "SessionStore TTL in seconds. Sessions not updated within this "
+            "window are eligible for lazy GC (see CHAT-SESS-02)."
+        ),
+    )
+    # C1-9:CHAT-CFG-01
+    chat_max_sessions: int = Field(
+        default=500,
+        description=(
+            "SessionStore over-capacity log threshold. When len(store) >= this "
+            "value and a new session is created, a warning is logged (MVP: "
+            "no hard eviction; see CHAT-SESS-02)."
+        ),
+    )
+
+    # ------------------------------------------------------------------
     # Observability
     # ------------------------------------------------------------------
     log_level: str = Field(default="INFO", description="Python logging level.")
@@ -227,6 +272,12 @@ class Settings(BaseSettings):
             "critic": self.critic_temperature,
         }.get(stage)
         return self.llm_temperature if override is None else override
+
+    # C1-9:CHAT-CFG-01
+    @property
+    def effective_chat_model(self) -> str:
+        """Resolve chat model: CHAT_MODEL → planner_model → llm_model."""
+        return self.chat_model or self.planner_model or self.llm_model
 
     @property
     def effective_embed_base_url(self) -> str:

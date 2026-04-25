@@ -55,6 +55,25 @@ class AgentState(BaseModel):
         description=(
             "Terminal error string, prefixed by category: "
             "planning_failed: | planning_timeout: | "
-            "building_failed: | building_timeout: | give_up:"
+            "building_failed: | building_timeout: | "
+            "completeness_failed: | assembler_*: | validator_*: | "
+            "deploy_failed: | give_up: | plan_rejected:"
+        ),
+    )
+
+    # C1-1:HITL-SHIP-02
+    session_id: str | None = Field(
+        default=None,
+        description=(
+            "LangGraph thread id, also used as chat session id (C1-9). "
+            "Required when HITL is enabled; None for run_cli (hitl=False) mode."
+        ),
+    )
+    # C1-1:HITL-SHIP-02
+    plan_approved: bool = Field(
+        default=False,
+        description=(
+            "Set True by await_plan_approval node after user confirms (or hitl=False). "
+            "Read by the conditional edge before build_step_loop."
         ),
     )

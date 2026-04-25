@@ -1,6 +1,6 @@
 # C1-1：Agent Graph（LangGraph）
 
-> **版本**: v2.0.0 ｜ **狀態**: Draft ｜ **前置**: D0-1, D0-2, D0-3 v1.1, C1-2 v1.1, C1-4 v1.1, C1-7, C1-8 ｜ **Prompts**: R2-3
+> **版本**: v2.0.4 ｜ **狀態**: Draft ｜ **前置**: D0-1, D0-2, D0-3 v1.1, C1-2 v1.1, C1-4 v1.1, C1-7, C1-8 ｜ **Prompts**: R2-3
 
 ## Purpose
 
@@ -718,6 +718,111 @@ completeness_check 的設計目標之一就是 **graceful**。以下為明確規
 - [ ] 當 builder 少生成一個 step 對應的節點，completeness_check 成功注入 skeleton，最終 `len(built_nodes) == len(plan)`（B-COMP-03）。
 - [ ] RAG 對 missing step 的 type 查不到 detail 時，skeleton 以 `type_version=1.0` 注入，流程不中斷（B-COMP-04）。
 
+### Errors §D. HITL shipping(v2.0.3 — 把 v2.0.2 已 spec 但未 impl 的 HITL 落地)
+
+C1-1 v2.0.2 §2.2 / §5 / §8 已完整描述 HITL 行為(`await_plan_approval` + `MemorySaver` + `interrupt_before=["build_step_loop"]`),但目前 graph.py 尚未實作。`C1-9` chat layer 的 `confirm_plan` tool 直接依賴 HITL 路徑;以下兩條為「必須 ship」的硬性 acceptance entries。
+
+#### C1-1:HITL-SHIP-01: `MemorySaver` + `interrupt_before` 落地
+
+**Statement**: `build_graph(retriever, *, deploy_enabled=True, hitl_enabled=True)` 必須:(a) 當 `hitl_enabled=True` 時 instantiate `MemorySaver()` 作為 checkpointer(必須是 process-wide singleton,resume 才找得到 session);(b) compile 時帶 `interrupt_before=["await_plan_approval"]`(見下方 anchor 說明);(c) `hitl_enabled=False`(`run_cli` 路徑)時 checkpointer=None、不 interrupt。同時 export 兩個新 helper:`run_graph_until_interrupt(session_id, user_message) -> AgentState`(跑到 await_plan_approval 中斷,回中斷時 state 快照)與 `resume_graph_with_confirmation(session_id, approved, edited_plan=None) -> AgentState`(從 checkpoint resume 跑到 END)。
+
+**Interrupt anchor 澄清**(reconcile 自實作 review):本檔 v2.0.0 §8 範例寫的是 `interrupt_before=["build_step_loop"]`,但實際落地以 `interrupt_before=["await_plan_approval"]` 為準,理由:
+1. `await_plan_approval` 是 §1 圖中明確的 HITL gate node;
+2. 使用者決策必須在 gate node *執行前* 注入(`update_state` 寫 `plan_approved`),才能讓 gate 後的條件邊正確路由;
+3. 當前 code 仍是 v1 bulk `build` 節點(命名為 `build` 而非 `build_step_loop`),anchor 落在 gate 才能跨 v1/v2 builder 一致繼承 HITL wiring。
+
+語意上等價:使用者必先確認才會跑到任何 builder 工作。當 builder 從 v1 bulk 升級到 v2 per-step 時,本 anchor 不需異動(`build_step_loop` 在 gate 之後)。
+
+**Rationale**: HITL 的 spec 已存在但未 ship,導致 chat layer(C1-9)無法落地 confirm_plan tool。落地此條 = 解鎖整個 chat-first pipeline。
+
+**Affected files**:
+- `backend/app/agent/graph.py`(build_graph 補 checkpointer + interrupt_before;新 helper 兩個)
+- `backend/app/models/agent_state.py`(見 HITL-SHIP-02)
+
+**Function signature**:
+```python
+# C1-1:HITL-SHIP-01
+from langgraph.checkpoint.memory import MemorySaver
+
+def build_graph(
+    retriever, *, deploy_enabled: bool = True, hitl_enabled: bool = True
+) -> CompiledGraph:
+    # ... existing nodes/edges ...
+    # C1-1:HITL-SHIP-01 — anchor interrupt on await_plan_approval per §interrupt anchor 澄清
+    checkpointer = _get_hitl_checkpointer() if hitl_enabled else None  # process-wide singleton
+    return g.compile(
+        checkpointer=checkpointer,
+        interrupt_before=["await_plan_approval"] if hitl_enabled else [],
+    )
+
+def run_graph_until_interrupt(
+    session_id: str, user_message: str, *, retriever=None
+) -> AgentState: ...
+
+def resume_graph_with_confirmation(
+    session_id: str, approved: bool, edited_plan: list[StepPlan] | None = None
+) -> AgentState: ...
+```
+
+**Examples**:
+- ✅ `run_graph_until_interrupt("sess_xxx", "...")` → 回 AgentState 含 plan,plan_approved=False
+- ✅ `resume_graph_with_confirmation("sess_xxx", True)` → 跑完 END,workflow_url 填
+- ✅ `resume_graph_with_confirmation("sess_xxx", False)` → state.error="plan_rejected"
+- ❌ resume 不存在 session_id → raise `SessionNotFound`(C1-5 404 處理)
+- ⚠️ Stage mismatch(graph 快照在非 await_plan_approval 中斷點):**v1 acceptance** — `resume_graph_with_confirmation` 不主動偵測;由 endpoint 層的 `except Exception` fallback 撐住(回 500 而非 409)。**Follow-up**:後續若有 SSE / 多 client 同時 confirm 的競態場景,須加 graph 層 stage probe 並 raise `SessionStageMismatch`,endpoint 對應回 409。本 v1 實作不阻擋 ship。
+
+**Test scenarios**:
+- `test_hitl_graph_interrupts_at_await_plan_approval`:hitl_enabled=True,run_graph_until_interrupt 後 graph 暫停,plan 已 populated
+- `test_hitl_graph_resume_with_approval_completes`:resume(approved=True) 跑到 END
+- `test_hitl_graph_resume_with_rejection_sets_error`:resume(approved=False) → state.error 含 "plan_rejected"
+- `test_hitl_graph_resume_with_edited_plan_uses_new_plan`:edited_plan 帶入,後續 build 用新 plan
+- `test_run_cli_unchanged_with_hitl_disabled`:既有 CLI 測試全綠,hitl_enabled=False 直接跑完
+- `test_hitl_resume_unknown_session_raises`:resume 不存在 sid → SessionNotFound
+
+**Security note**: `session_id` 來自 chat layer / API,sanitize 由 C1-9:CHAT-SEC-01 與 C1-5 既有 pattern validation 處理。
+
+#### C1-1:HITL-SHIP-02: `AgentState` 新增 `session_id` 與 `plan_approved` 欄位
+
+**Statement**: `AgentState` 補兩個欄位:`session_id: str | None = None`(僅 HITL 模式有值)與 `plan_approved: bool = False`(由 `await_plan_approval` 節點寫入)。同時新增 `await_plan_approval` 節點的 stub function `await_plan_approval_step(state) -> dict`(在 hitl_enabled=False 時直接回 `{"plan_approved": True}`,hitl_enabled=True 時 graph compile 帶 interrupt_before 故此函式只在 resume 後跑一次,讀取已被 resume payload 寫入的 plan_approved)。
+
+**Rationale**: HITL state 需 thread 全程持續,且 resume 路徑需要區分「使用者已決定」與「graph 還沒問」。
+
+**Affected files**:
+- `backend/app/models/agent_state.py`(加欄位)
+- `backend/app/agent/graph.py`(node factory 與 conditional edge `await_plan_approval → {build_step_loop, give_up}`)
+- `backend/tests/test_graph_wiring.py`(新增 wiring 驗證)
+
+**Function signature**:
+```python
+# C1-1:HITL-SHIP-02
+class AgentState(BaseModel):
+    # ... 既有欄位 ...
+    session_id: str | None = Field(
+        default=None,
+        description="LangGraph thread id, also used as chat session id (C1-9).",
+    )
+    plan_approved: bool = Field(
+        default=False,
+        description="Set True by await_plan_approval node after user confirms (or hitl=False).",
+    )
+
+def await_plan_approval_step(state: AgentState) -> dict[str, Any]: ...
+```
+
+**Examples**:
+- ✅ hitl_enabled=False → `await_plan_approval_step` 立即回 `{"plan_approved": True}`
+- ✅ hitl_enabled=True 且 graph 已 resume 帶 `{"plan_approved": True}` → 節點 read state 後直接放行
+- ✅ `state.error="plan_rejected"` 由 `_after_plan_approval` 條件邊路由至 give_up 而非 build_step_loop
+
+**Test scenarios**:
+- `test_agent_state_session_id_default_none`
+- `test_agent_state_plan_approved_default_false`
+- `test_await_plan_approval_skips_when_hitl_disabled`
+- `test_await_plan_approval_routes_give_up_on_rejection`
+- `test_graph_wiring_has_await_plan_approval_node`
+
+**Security note**: N/A(欄位本身無 security 影響;session_id 內容驗證見 C1-9:CHAT-SEC-01)。
+
 ## 變更紀錄
 
 | 版本 | 日期 | 變更 |
@@ -726,3 +831,5 @@ completeness_check 的設計目標之一就是 **graceful**。以下為明確規
 | v2.0.0 | 2026-04-21 | 重大結構變更：per-step builder 迴圈、rule_class 分流路由、HITL plan confirm、整合 C1-7 critic 與 C1-2 v1.1 templates。棄用 `BuilderOutput`，拆為 `BuilderStepOutput` + `ConnectionsOutput` |
 | v2.0.1 | 2026-04-22 | 新增 v1.1-impl 過渡條目（適用 v1 bulk builder 現行 code，v2 重寫後自動繼承）：B-TIMEOUT-01（builder timeout 必 raise 不退化空 list）、B-TIMEOUT-02（`state.error` category prefix 規範）、B-CAND-01（retriever 批次 definitions 查詢）、B-CAND-02（candidate fallback 迴圈）。對應 backend bottleneck analysis P0/P1 條目 |
 | v2.0.2 | 2026-04-24 | 新增 completeness_check 節點（v1.1-impl）：B-COMP-01（插入點與 fix_build 繞過）、B-COMP-02（`BuiltNode.step_id` 欄位）、B-COMP-03（skeleton 注入規則）、B-COMP-04（RAG miss graceful skip）、B-COMP-05（集中測試清單）。圖結構與條件邊、Errors §C、Acceptance Criteria 同步更新。`state.error` prefix 表新增 `completeness_failed` |
+| v2.0.3 | 2026-04-25 | 新增 HITL shipping 條目(對應 C1-9 chat layer 依賴):HITL-SHIP-01(MemorySaver + interrupt_before + run_graph_until_interrupt / resume_graph_with_confirmation helpers)、HITL-SHIP-02(`AgentState` 補 `session_id` / `plan_approved` 欄位 + `await_plan_approval_step` 節點)。落地 v2.0.0 §2.2/§5/§8 已 spec 但未 impl 的 HITL 路徑 |
+| v2.0.4 | 2026-04-25 | reconcile 落地細節:HITL-SHIP-01 Statement / 範例 / Acceptance 同步成 `interrupt_before=["await_plan_approval"]`(取代原 §8 範例 `["build_step_loop"]`),澄清 anchor 在 gate node 的理由(跨 v1 bulk / v2 per-step builder 命名都成立);新增 stage-mismatch v1 verdict(由 endpoint fallback 撐住,409 留待 follow-up);MemorySaver 改稱 process-wide singleton |
