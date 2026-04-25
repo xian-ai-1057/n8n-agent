@@ -131,3 +131,90 @@ def test_check_openai_split_llm_failure_marks_overall_not_ok(
 
     assert result["ok"] is False
     assert "llm endpoint" in result["error"]
+
+
+# ----------------------------------------------------------------------
+# _probe_models_endpoint — provider prefix tolerance
+# ----------------------------------------------------------------------
+
+
+class _FakeResponse:
+    def __init__(self, payload: dict[str, Any], status_code: int = 200) -> None:
+        self._payload = payload
+        self.status_code = status_code
+
+    def json(self) -> dict[str, Any]:
+        return self._payload
+
+
+class _FakeAsyncClient:
+    def __init__(self, payload: dict[str, Any]) -> None:
+        self._payload = payload
+
+    async def __aenter__(self) -> "_FakeAsyncClient":
+        return self
+
+    async def __aexit__(self, *exc: Any) -> None:
+        return None
+
+    async def get(self, *_args: Any, **_kwargs: Any) -> _FakeResponse:
+        return _FakeResponse(self._payload)
+
+
+def _patch_httpx(monkeypatch: pytest.MonkeyPatch, payload: dict[str, Any]) -> None:
+    monkeypatch.setattr(
+        routes_mod.httpx, "AsyncClient", lambda *a, **kw: _FakeAsyncClient(payload)
+    )
+
+
+def test_probe_models_endpoint_accepts_provider_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Gemini's /models lists IDs as `models/<name>`; bare configured name must still match."""
+    payload = {
+        "data": [
+            {"id": "models/gemini-3.1-flash-lite-preview"},
+            {"id": "models/embeddinggemma:latest"},
+        ]
+    }
+    _patch_httpx(monkeypatch, payload)
+
+    result = asyncio.run(
+        routes_mod._probe_models_endpoint(
+            "https://gemini.example/v1",
+            "key",
+            ("gemini-3.1-flash-lite-preview", "embeddinggemma:latest"),
+        )
+    )
+    assert result["ok"] is True
+
+
+def test_probe_models_endpoint_accepts_exact_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Plain ID match (no prefix) still works for vLLM/OpenAI-style providers."""
+    payload = {"data": [{"id": "Qwen/Qwen2.5-7B-Instruct"}]}
+    _patch_httpx(monkeypatch, payload)
+
+    result = asyncio.run(
+        routes_mod._probe_models_endpoint(
+            "http://llm:8000/v1", "k", ("Qwen/Qwen2.5-7B-Instruct",)
+        )
+    )
+    assert result["ok"] is True
+
+
+def test_probe_models_endpoint_reports_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A model neither listed exactly nor as the suffix of a prefixed ID is reported missing."""
+    payload = {"data": [{"id": "models/gemini-3.1-flash-lite-preview"}]}
+    _patch_httpx(monkeypatch, payload)
+
+    result = asyncio.run(
+        routes_mod._probe_models_endpoint(
+            "https://gemini.example/v1", "key", ("nonexistent-model",)
+        )
+    )
+    assert result["ok"] is False
+    assert "missing models" in result["error"]
