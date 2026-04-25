@@ -436,6 +436,506 @@ prompts:
       deploy: skip
     tags: [schedule_trigger, output_sheet, output_email, output_slack, multi_step_chain]
 
+  # ─────────────────────────── chat_tool_decision_precision ─────────────────
+  # eval_chat_tool_decision_precision — 20 prompts covering build vs chat routing.
+  # Scoring gate: precision ≥ 0.85, recall ≥ 0.80 on build_workflow tool calls.
+  # Tag: chat_tool_decision
+
+  - id: chat_tool_decision_01_clear_schedule_build
+    message: "幫我建立一個 workflow，每小時從 https://api.example.com/data 抓 JSON 存到 Google Sheet"
+    expect:
+      chat_layer:
+        expected_tool: build_workflow
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision, schedule_trigger, http_request, output_sheet]
+
+  - id: chat_tool_decision_02_clear_webhook_build
+    message: "設定一個 webhook，當收到 POST 就把 body.event 轉發到 Slack #events"
+    expect:
+      chat_layer:
+        expected_tool: build_workflow
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision, webhook_trigger, output_slack]
+
+  - id: chat_tool_decision_03_greeting_no_build
+    message: "你好！"
+    expect:
+      chat_layer:
+        expected_tool: none
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision]
+
+  - id: chat_tool_decision_04_general_question_no_build
+    message: "n8n 支援哪些資料庫節點？"
+    expect:
+      chat_layer:
+        expected_tool: none
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision]
+
+  - id: chat_tool_decision_05_explicit_automate_build
+    message: "自動化：每天早上 9 點讀 Airtable 寄每日報告 email 給 boss@example.com"
+    expect:
+      chat_layer:
+        expected_tool: build_workflow
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision, schedule_trigger, output_email]
+
+  - id: chat_tool_decision_06_vague_topic_no_build
+    message: "我對 workflow 自動化很有興趣"
+    expect:
+      chat_layer:
+        expected_tool: none
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision]
+
+  - id: chat_tool_decision_07_complete_spec_build
+    message: "建立 workflow：webhook 觸發 → 用 code 驗證 HMAC → 寫入 PostgreSQL"
+    expect:
+      chat_layer:
+        expected_tool: build_workflow
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision, webhook_trigger, transform_code]
+
+  - id: chat_tool_decision_08_how_to_question_no_build
+    message: "如何設定 n8n 的 credentials？"
+    expect:
+      chat_layer:
+        expected_tool: none
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision]
+
+  - id: chat_tool_decision_09_manual_trigger_build
+    message: "手動執行：從 Google Sheets 讀取資料，用 code 過濾後發 Slack 訊息"
+    expect:
+      chat_layer:
+        expected_tool: build_workflow
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision, manual_trigger, transform_code, output_slack]
+
+  - id: chat_tool_decision_10_troubleshoot_no_build
+    message: "我的 HTTP Request 節點一直回傳 401，怎麼辦？"
+    expect:
+      chat_layer:
+        expected_tool: none
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision]
+
+  - id: chat_tool_decision_11_form_trigger_build
+    message: "用 form trigger 收表單，自動寄確認信到填表人的 email"
+    expect:
+      chat_layer:
+        expected_tool: build_workflow
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision, output_email]
+
+  - id: chat_tool_decision_12_debugging_question_no_build
+    message: "Set 節點和 Code 節點有什麼差異？"
+    expect:
+      chat_layer:
+        expected_tool: none
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision]
+
+  - id: chat_tool_decision_13_full_pipeline_build
+    message: "每 30 分鐘呼叫 API → 若回傳狀態不是 ok → 發 Slack 告警 → 寫入 Google Sheet"
+    expect:
+      chat_layer:
+        expected_tool: build_workflow
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision, schedule_trigger, branching_if, output_slack, output_sheet]
+
+  - id: chat_tool_decision_14_about_n8n_no_build
+    message: "n8n 跟 Zapier 有什麼不同？"
+    expect:
+      chat_layer:
+        expected_tool: none
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision]
+
+  - id: chat_tool_decision_15_switch_routing_build
+    message: "webhook 進來依 body.type 分三路處理：'a' 發 email、'b' 發 Slack、其他寫 Sheet"
+    expect:
+      chat_layer:
+        expected_tool: build_workflow
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision, webhook_trigger, branching_switch]
+
+  - id: chat_tool_decision_16_cost_question_no_build
+    message: "n8n Cloud 的定價是多少？"
+    expect:
+      chat_layer:
+        expected_tool: none
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision]
+
+  - id: chat_tool_decision_17_etl_pipeline_build
+    message: "建立 ETL：每天凌晨 2 點從 MySQL 讀資料 → 用 code 轉換 → 寫入 BigQuery"
+    expect:
+      chat_layer:
+        expected_tool: build_workflow
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision, schedule_trigger, transform_code]
+
+  - id: chat_tool_decision_18_feature_question_no_build
+    message: "n8n 支援 retry on failure 嗎？"
+    expect:
+      chat_layer:
+        expected_tool: none
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision]
+
+  - id: chat_tool_decision_19_enrichment_build
+    message: "Webhook 帶進 user_id，查 CRM API 補上 email 和 plan，存入 Notion"
+    expect:
+      chat_layer:
+        expected_tool: build_workflow
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision, webhook_trigger, http_request, transform_code]
+
+  - id: chat_tool_decision_20_hello_no_build
+    message: "謝謝你的幫助！"
+    expect:
+      chat_layer:
+        expected_tool: none
+        precision_group: chat_tool_decision_precision
+      deploy: skip
+    tags: [chat_tool_decision]
+
+  # ─────────────────────────── chat_plan_convergence ─────────────────────────
+  # eval_chat_plan_convergence — 10 ambiguous prompts.
+  # Scoring gate: avg clarification turns ≤ 2 before build_workflow called.
+  # Tag: chat_plan_convergence
+
+  - id: chat_plan_conv_01_vague_automation
+    message: "我想做一個自動化"
+    expect:
+      chat_layer:
+        expected_tool: none
+        convergence_group: chat_plan_convergence
+        max_clarification_turns: 2
+      deploy: skip
+    tags: [chat_plan_convergence]
+
+  - id: chat_plan_conv_02_some_automation
+    message: "幫我自動化一些流程"
+    expect:
+      chat_layer:
+        expected_tool: none
+        convergence_group: chat_plan_convergence
+        max_clarification_turns: 2
+      deploy: skip
+    tags: [chat_plan_convergence]
+
+  - id: chat_plan_conv_03_need_workflow
+    message: "我需要一個 workflow"
+    expect:
+      chat_layer:
+        expected_tool: none
+        convergence_group: chat_plan_convergence
+        max_clarification_turns: 2
+      deploy: skip
+    tags: [chat_plan_convergence]
+
+  - id: chat_plan_conv_04_send_notifications
+    message: "每天發通知"
+    expect:
+      chat_layer:
+        expected_tool: none
+        convergence_group: chat_plan_convergence
+        max_clarification_turns: 2
+      deploy: skip
+    tags: [chat_plan_convergence]
+
+  - id: chat_plan_conv_05_sync_data
+    message: "資料同步"
+    expect:
+      chat_layer:
+        expected_tool: none
+        convergence_group: chat_plan_convergence
+        max_clarification_turns: 2
+      deploy: skip
+    tags: [chat_plan_convergence]
+
+  - id: chat_plan_conv_06_monitor_something
+    message: "監控一些東西出問題就通知我"
+    expect:
+      chat_layer:
+        expected_tool: none
+        convergence_group: chat_plan_convergence
+        max_clarification_turns: 2
+      deploy: skip
+    tags: [chat_plan_convergence]
+
+  - id: chat_plan_conv_07_process_forms
+    message: "有人填表單之後要做一些處理"
+    expect:
+      chat_layer:
+        expected_tool: none
+        convergence_group: chat_plan_convergence
+        max_clarification_turns: 2
+      deploy: skip
+    tags: [chat_plan_convergence]
+
+  - id: chat_plan_conv_08_something_periodic
+    message: "定期跑一個任務"
+    expect:
+      chat_layer:
+        expected_tool: none
+        convergence_group: chat_plan_convergence
+        max_clarification_turns: 2
+      deploy: skip
+    tags: [chat_plan_convergence]
+
+  - id: chat_plan_conv_09_when_event_happens
+    message: "當事件發生時要做事"
+    expect:
+      chat_layer:
+        expected_tool: none
+        convergence_group: chat_plan_convergence
+        max_clarification_turns: 2
+      deploy: skip
+    tags: [chat_plan_convergence]
+
+  - id: chat_plan_conv_10_integrate_systems
+    message: "讓兩個系統互通"
+    expect:
+      chat_layer:
+        expected_tool: none
+        convergence_group: chat_plan_convergence
+        max_clarification_turns: 2
+      deploy: skip
+    tags: [chat_plan_convergence]
+
+  # ─────────────────────────── chat_keyword_false_positive ───────────────────
+  # eval_chat_keyword_false_positive — 10 negation/scoping prompts.
+  # Scoring gate: 0 mis-triggers (build_workflow must NOT be called).
+  # Tag: chat_keyword_false_positive
+
+  - id: chat_kw_fp_01_not_yet
+    message: "我還不想建 workflow，只是想了解 n8n 是什麼"
+    expect:
+      chat_layer:
+        expected_tool: none
+        false_positive_group: chat_keyword_false_positive
+      deploy: skip
+    tags: [chat_keyword_false_positive]
+
+  - id: chat_kw_fp_02_just_asking
+    message: "如果我要自動化，大概怎麼做？只是問問"
+    expect:
+      chat_layer:
+        expected_tool: none
+        false_positive_group: chat_keyword_false_positive
+      deploy: skip
+    tags: [chat_keyword_false_positive]
+
+  - id: chat_kw_fp_03_explain_webhook
+    message: "webhook 觸發是什麼意思？我不是要建 workflow"
+    expect:
+      chat_layer:
+        expected_tool: none
+        false_positive_group: chat_keyword_false_positive
+      deploy: skip
+    tags: [chat_keyword_false_positive]
+
+  - id: chat_kw_fp_04_friend_built
+    message: "我朋友建了一個每小時執行的 workflow，他是怎麼做到的？"
+    expect:
+      chat_layer:
+        expected_tool: none
+        false_positive_group: chat_keyword_false_positive
+      deploy: skip
+    tags: [chat_keyword_false_positive]
+
+  - id: chat_kw_fp_05_cancel_it
+    message: "算了，不要幫我建了，我想先想清楚"
+    expect:
+      chat_layer:
+        expected_tool: none
+        false_positive_group: chat_keyword_false_positive
+      deploy: skip
+    tags: [chat_keyword_false_positive]
+
+  - id: chat_kw_fp_06_already_have
+    message: "我已經有 Zapier workflow 了，不需要再建"
+    expect:
+      chat_layer:
+        expected_tool: none
+        false_positive_group: chat_keyword_false_positive
+      deploy: skip
+    tags: [chat_keyword_false_positive]
+
+  - id: chat_kw_fp_07_reading_docs
+    message: "我在讀 n8n 文件，cronstruct schedule trigger 的範例是什麼？"
+    expect:
+      chat_layer:
+        expected_tool: none
+        false_positive_group: chat_keyword_false_positive
+      deploy: skip
+    tags: [chat_keyword_false_positive]
+
+  - id: chat_kw_fp_08_hypothetical
+    message: "如果想每天寄 email，理論上要哪些節點？不是要你幫我建"
+    expect:
+      chat_layer:
+        expected_tool: none
+        false_positive_group: chat_keyword_false_positive
+      deploy: skip
+    tags: [chat_keyword_false_positive]
+
+  - id: chat_kw_fp_09_team_discussion
+    message: "我們團隊在討論要不要用 webhook 自動化，你覺得值得嗎？"
+    expect:
+      chat_layer:
+        expected_tool: none
+        false_positive_group: chat_keyword_false_positive
+      deploy: skip
+    tags: [chat_keyword_false_positive]
+
+  - id: chat_kw_fp_10_negative_confirmation
+    message: "我說的不是要建 workflow，我只是問 schedule trigger 和 cron job 的差別"
+    expect:
+      chat_layer:
+        expected_tool: none
+        false_positive_group: chat_keyword_false_positive
+      deploy: skip
+    tags: [chat_keyword_false_positive]
+
+  # ─────────────────────────── chat_hitl_confirm_interp ──────────────────────
+  # eval_chat_hitl_confirm_interp — 10 confirmation expression prompts.
+  # Scoring gate: recall ≥ 0.90 for recognising confirmation intent.
+  # Tag: chat_hitl_confirm_interp
+
+  - id: chat_hitl_confirm_01_yes
+    message: "好的，就這樣吧"
+    expect:
+      chat_layer:
+        expected_tool: confirm_plan
+        confirm_args:
+          approved: true
+        recall_group: chat_hitl_confirm_interp
+      deploy: skip
+    tags: [chat_hitl_confirm_interp]
+
+  - id: chat_hitl_confirm_02_proceed
+    message: "確認，繼續"
+    expect:
+      chat_layer:
+        expected_tool: confirm_plan
+        confirm_args:
+          approved: true
+        recall_group: chat_hitl_confirm_interp
+      deploy: skip
+    tags: [chat_hitl_confirm_interp]
+
+  - id: chat_hitl_confirm_03_looks_good
+    message: "看起來不錯，部署吧"
+    expect:
+      chat_layer:
+        expected_tool: confirm_plan
+        confirm_args:
+          approved: true
+        recall_group: chat_hitl_confirm_interp
+      deploy: skip
+    tags: [chat_hitl_confirm_interp]
+
+  - id: chat_hitl_confirm_04_approve
+    message: "approve"
+    expect:
+      chat_layer:
+        expected_tool: confirm_plan
+        confirm_args:
+          approved: true
+        recall_group: chat_hitl_confirm_interp
+      deploy: skip
+    tags: [chat_hitl_confirm_interp]
+
+  - id: chat_hitl_confirm_05_no_reject
+    message: "不要，計畫有問題"
+    expect:
+      chat_layer:
+        expected_tool: confirm_plan
+        confirm_args:
+          approved: false
+        recall_group: chat_hitl_confirm_interp
+      deploy: skip
+    tags: [chat_hitl_confirm_interp]
+
+  - id: chat_hitl_confirm_06_cancel
+    message: "取消，我想重新來"
+    expect:
+      chat_layer:
+        expected_tool: confirm_plan
+        confirm_args:
+          approved: false
+        recall_group: chat_hitl_confirm_interp
+      deploy: skip
+    tags: [chat_hitl_confirm_interp]
+
+  - id: chat_hitl_confirm_07_ok_go
+    message: "ok，go ahead"
+    expect:
+      chat_layer:
+        expected_tool: confirm_plan
+        confirm_args:
+          approved: true
+        recall_group: chat_hitl_confirm_interp
+      deploy: skip
+    tags: [chat_hitl_confirm_interp]
+
+  - id: chat_hitl_confirm_08_wrong_reject
+    message: "這不對，step 2 應該用 Slack 不是 Email"
+    expect:
+      chat_layer:
+        expected_tool: confirm_plan
+        confirm_args:
+          approved: false
+        recall_group: chat_hitl_confirm_interp
+      deploy: skip
+    tags: [chat_hitl_confirm_interp]
+
+  - id: chat_hitl_confirm_09_ship_it
+    message: "ship it！"
+    expect:
+      chat_layer:
+        expected_tool: confirm_plan
+        confirm_args:
+          approved: true
+        recall_group: chat_hitl_confirm_interp
+      deploy: skip
+    tags: [chat_hitl_confirm_interp]
+
+  - id: chat_hitl_confirm_10_lgtm
+    message: "LGTM"
+    expect:
+      chat_layer:
+        expected_tool: confirm_plan
+        confirm_args:
+          approved: true
+        recall_group: chat_hitl_confirm_interp
+      deploy: skip
+    tags: [chat_hitl_confirm_interp]
+
   # ─────────────────────────── multi-step long chain ────────────────────────
 
   - id: full_pipeline_schedule_to_sheet_and_slack

@@ -1,6 +1,6 @@
 # C1-5：HTTP API（FastAPI）
 
-> **版本**: v2.0.0 ｜ **狀態**: Draft ｜ **前置**: D0-2 v1.1, C1-1 v2.0, C1-3, C1-8
+> **版本**: v2.0.3 ｜ **狀態**: Draft ｜ **前置**: D0-2 v1.1, C1-1 v2.0, C1-3, C1-8
 
 ## Purpose
 
@@ -404,6 +404,65 @@ class ChatRequest(BaseModel):
 
 ---
 
+---
+
+### C1-5:HITL-SHIP-01: `POST /chat/{session_id}/confirm-plan` endpoint 落地
+
+**Statement**: C1-5 v2.0.0 §4 既有 `POST /chat/{session_id}/confirm-plan` 規格(request schema、四個 status 行為分支)為硬性合約,本條目把它從 spec-only 推到 impl。endpoint 在 `routes.py` 落地,行為遵循 §4 全部規則:404 on session 不存在、409 on stage mismatch、422 on edited_plan schema 錯、200 on 完成。同時 C1-9 chat layer 的 `confirm_plan_tool` 透過 in-process callable(C1-9:CHAT-API-02)而非 HTTP 重複進入此 endpoint;但 endpoint 本身仍須對外 expose 給 SSE / 外部 client。
+
+實作上需注意:
+1. 從 SessionStore(C1-9:CHAT-SESS-01)取對應 chat session,順便確認 `awaiting_plan_approval=True`(409 on false)。
+2. 呼叫 `resume_graph_with_confirmation(session_id, approved, edited_plan)`(C1-1:HITL-SHIP-01 提供)。
+3. 把 resume 後的最終 AgentState 用 `_state_to_response` 序列化(沿用既有 helper),fill `session_id` / `assistant_text="...plan confirmed/rejected..."` / `status` 三個 chat-layer 欄位(C1-9:CHAT-API-01)。
+4. session 過期(graph checkpointer 已 GC)→ 404,session 仍在 store 內但 graph 找不到 thread → 也視為 404(對外行為一致)。
+
+**Rationale**: HITL endpoint 在 v2.0.0 已寫好但沒 ship,且為 chat layer confirm_plan tool 的 fallback 入口(若未來改成跨 worker 部署,tool 必須走 HTTP 而非 in-process callable)。先把 endpoint 立起來、tool 走 in-process 是漸進路徑。
+
+**Affected files**:
+- `backend/app/api/routes.py`(新增 endpoint handler;新增 in-process `_do_confirm_plan(session_id, request) -> dict` 給 chat tool 注入)
+- `backend/app/api/__init__.py`(可能要 export 新 helper)
+- `backend/app/models/api.py`(`ConfirmPlanRequest` 已在 §4 spec,落地 Pydantic class)
+- `backend/tests/test_routes_confirm_plan.py`(新增)
+
+**Function signature**:
+```python
+# C1-5:HITL-SHIP-01
+class ConfirmPlanRequest(BaseModel):
+    approved: bool
+    edited_plan: list[StepPlan] | None = None
+
+@router.post("/chat/{session_id}/confirm-plan")
+async def confirm_plan(session_id: str, body: ConfirmPlanRequest, request: Request) -> JSONResponse:
+    """Resume HITL graph after plan review. Returns 200/404/409/422 per C1-5 §4."""
+
+def _do_confirm_plan(session_id: str, body: ConfirmPlanRequest) -> dict:
+    """Shared sync logic for endpoint + in-process chat tool callable (C1-9:CHAT-API-02)."""
+```
+
+**Examples**:
+- ✅ approved=True, valid session → 200, ChatResponse with status="deployed", workflow_url filled
+- ✅ approved=False → 200, status="rejected", error_message="plan_rejected"
+- ❌ session 不存在 → 404 `{error:"session_not_found"}`
+- ❌ session 存在但 graph 不在 await_plan_approval → 409 `{error:"not_awaiting_plan_approval", current_stage}`
+- ❌ approved=True 但 edited_plan 缺 trigger / 0 步 → 400 `{error:"invalid_edited_plan"}`
+- ❌ edited_plan schema 錯 → 422(FastAPI 自動)
+
+**Test scenarios**:
+- `test_confirm_plan_endpoint_404_on_unknown_session`
+- `test_confirm_plan_endpoint_409_on_stage_mismatch`(mock graph 在 build 階段)
+- `test_confirm_plan_endpoint_200_approved_no_edits`
+- `test_confirm_plan_endpoint_200_approved_with_edited_plan`
+- `test_confirm_plan_endpoint_200_rejected_sets_error_plan_rejected`
+- `test_confirm_plan_endpoint_400_on_empty_edited_plan`
+- `test_confirm_plan_endpoint_422_on_malformed_edited_plan`
+- `test_do_confirm_plan_callable_returns_dict_for_chat_tool_use`
+
+**Security note**: session_id 從 URL path 取,須過 C1-9:CHAT-SEC-01 pattern validation;不合格 → 404(避免揭露 internal id 結構)。Rate limit 30 req/min/IP(沿用 §8.4)。
+
+**v1 reconcile note** (2026-04-25): 409 stage-mismatch 行為(spec §4 Errors)在 v1 acceptance 落地為:graph 層(C1-1:HITL-SHIP-01)未主動 raise `SessionStageMismatch`,endpoint 透過 `except Exception` fallback 收住(回 500,而非 spec 要求的 409)。同 session_id 重複 confirm 的場景目前由 LangGraph internal error 抑制,實務 friction 低(chat layer 內 single-flight)。**Follow-up**:加 graph 層 stage probe 並補對應 endpoint 分支,把 500 → 409。test `test_confirm_plan_endpoint_409_on_stage_mismatch` 已存在但目前驗證的是 fallback 路徑,需在 follow-up PR 中改驗 409。本注記不阻擋 v1 ship。
+
+---
+
 ## 變更紀錄
 
 | 版本 | 日期 | 變更 |
@@ -411,3 +470,5 @@ class ChatRequest(BaseModel):
 | v1.0.0 | 2026-04-20 | 初版：同步 /chat + /health |
 | v2.0.0 | 2026-04-21 | SSE streaming、HITL `confirm-plan` 端點、session storage 契約；整合 C1-8 security gate；/health 新增 templates 檢查；ChatResponse 加 critic_concerns 欄位（向前相容） |
 | v2.0.1 | 2026-04-22 | 新增 traceability 條目：A-RESP-01（ChatResponse.plan）、A-MSG-01（message max_length=8000，取代 §1/§8.1 中 2000 的上限）、A-WEB-01（StaticFiles 掛載 `/app`）|
+| v2.0.2 | 2026-04-25 | 新增 HITL shipping 條目:HITL-SHIP-01(`POST /chat/{sid}/confirm-plan` endpoint 落地;in-process `_do_confirm_plan` callable 供 C1-9 chat tool 注入)。對應 C1-9 chat layer 依賴 |
+| v2.0.3 | 2026-04-25 | reconcile review:HITL-SHIP-01 補「v1 reconcile note」明列 409 stage-mismatch 由 endpoint `except Exception` fallback(回 500)收住、graph 層 stage probe 為 follow-up;test `test_confirm_plan_endpoint_409_on_stage_mismatch` 暫驗 fallback 路徑 |
