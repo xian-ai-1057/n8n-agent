@@ -1,0 +1,64 @@
+# C1-9:CHAT-KW-01
+# Keyword lists for chat-layer dispatcher hint injection.
+# Top-level keys: build_keywords, confirm_keywords, reject_keywords.
+# Each key maps to {"zh": [...], "en": [...]}.
+# Loader falls back to hardcoded defaults on missing/malformed file.
+
+build_keywords:
+  zh:
+    - 建立 workflow
+    - 幫我做
+    - 自動化
+    - n8n
+    - 部署
+    - 排程
+    - 抓取
+    - 同步
+    - 串接
+    - 設定流程
+  en:
+    - build workflow
+    - automate
+    - set up
+    - deploy
+    - schedule
+    - sync
+    - fetch
+    - create workflow
+    - integrate
+    - automation
+
+confirm_keywords:
+  zh:
+    - 確認
+    - 對
+    - 好
+    - 可以
+    - 就這樣
+    - 沒問題
+    - 同意
+    - 執行
+  en:
+    - confirm
+    - "yes"
+    - ok
+    - approve
+    - go ahead
+    - proceed
+    - looks good
+
+reject_keywords:
+  zh:
+    - 不要
+    - 取消
+    - 算了
+    - 不行
+    - 停止
+    - 放棄
+  en:
+    - cancel
+    - abort
+    - nevermind
+    - "no"
+    - stop
+    - reject
