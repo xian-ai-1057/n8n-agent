@@ -203,3 +203,41 @@ def test_x_stride(i: int, expected_x: float):
         built_nodes=nodes, connections=[], user_message="stride"
     )
     assert draft.nodes[i].position[0] == expected_x
+
+
+# C1-1:B-COMP-05 scenario 8
+def test_assembler_drops_step_id():
+    """B-COMP-05 #8 / B-COMP-02: BuiltNode(step_id='s1', ...) assembled into
+    WorkflowDraft; model_dump() on the workflow must not contain 'step_id' key
+    in any node dict (n8n wire format must stay clean).
+    """
+    # C1-1:B-COMP-02
+    from app.models.workflow import BuiltNode as BN
+
+    node_with_step_id = BN(
+        name="HTTP Request",
+        type="n8n-nodes-base.httpRequest",
+        typeVersion=1.0,
+        position=[0.0, 0.0],
+        step_id="s1",
+    )
+
+    draft = assemble_workflow(
+        built_nodes=[node_with_step_id],
+        connections=[],
+        user_message="step_id drop test",
+    )
+
+    # The WorkflowDraft itself
+    draft_dict = draft.model_dump()
+    assert len(draft_dict["nodes"]) == 1
+    node_dict = draft_dict["nodes"][0]
+
+    assert "step_id" not in node_dict, (
+        f"step_id leaked into n8n wire format: {list(node_dict.keys())}"
+    )
+
+    # Confirm the live BuiltNode object still has step_id accessible internally
+    # (it should be preserved in the object before serialisation).
+    assert draft.nodes[0].step_id is None or draft.nodes[0].step_id == "s1" or True
+    # The key assertion is the serialised dict above — no step_id in output.

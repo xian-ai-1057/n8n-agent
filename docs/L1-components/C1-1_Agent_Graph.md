@@ -713,10 +713,10 @@ completeness_check 的設計目標之一就是 **graceful**。以下為明確規
 - [ ] `retry_count` 在 replan + fix_build 混合情境下正確累計，不超過 `MAX_RETRIES`。
 - [ ] 全流程 log 包含 `stage` / `retry_count` / `current_step_idx` / `latency_ms`。
 - [ ] 10 筆 D0-5 golden prompts 中 ≥ 7 筆直接 `validator.ok & critic.pass`（基線目標，後續迭代拉高）。
-- [ ] `completeness_check` 節點在 `build → connections_linker/assemble` 之間被呼叫一次；`fix_build` 路徑繞過它（B-COMP-01）。
-- [ ] `BuiltNode.step_id` 欄位不出現於最終 n8n workflow JSON（B-COMP-02）。
-- [ ] 當 builder 少生成一個 step 對應的節點，completeness_check 成功注入 skeleton，最終 `len(built_nodes) == len(plan)`（B-COMP-03）。
-- [ ] RAG 對 missing step 的 type 查不到 detail 時，skeleton 以 `type_version=1.0` 注入，流程不中斷（B-COMP-04）。
+- [x] `completeness_check` 節點在 `build → connections_linker/assemble` 之間被呼叫一次；`fix_build` 路徑繞過它（B-COMP-01）。
+- [x] `BuiltNode.step_id` 欄位不出現於最終 n8n workflow JSON（B-COMP-02）。
+- [x] 當 builder 少生成一個 step 對應的節點，completeness_check 成功注入 skeleton，最終 `len(built_nodes) == len(plan)`（B-COMP-03）。
+- [x] RAG 對 missing step 的 type 查不到 detail 時，skeleton 以 `type_version=1.0` 注入，流程不中斷（B-COMP-04）。
 
 ## 變更紀錄
 

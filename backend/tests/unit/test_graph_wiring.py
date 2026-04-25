@@ -275,3 +275,53 @@ def test_max_retry_exhausted_returns_give_up(patch_llms):
     assert state.error is not None
     assert "validator failed" in state.error
     assert builder_llm.calls == 3  # initial + 2 retries
+
+
+# C1-1:B-COMP-05 scenario 7
+def test_graph_wiring_completeness_inserted(patch_llms):
+    """B-COMP-05 #7: completeness_check is registered in the graph;
+    build → completeness_check (not build → assemble);
+    fix_build → assemble (bypasses completeness_check).
+    """
+    # C1-1:B-COMP-01 — inspect the compiled graph node list and edges.
+    graph = build_graph(_FakeRetriever(), deploy_enabled=False)
+
+    # 7a: completeness_check is a registered node.
+    node_names = set(graph.graph.nodes)
+    assert "completeness_check" in node_names, (
+        "completeness_check not found in graph nodes; expected per B-COMP-01"
+    )
+
+    # 7b: build → completeness_check edge exists (not build → assemble).
+    #     LangGraph stores edges as (source, target) tuples (or dicts with those keys).
+    edges = list(graph.graph.edges)
+    build_targets = set()
+    for edge in edges:
+        src = edge[0] if isinstance(edge, tuple) else edge.get("source_id") or edge.source
+        tgt = edge[1] if isinstance(edge, tuple) else edge.get("target_id") or edge.target
+        if src == "build":
+            build_targets.add(tgt)
+
+    assert "completeness_check" in build_targets, (
+        f"Expected build → completeness_check edge; found build targets: {build_targets}"
+    )
+    assert "assemble" not in build_targets, (
+        "build → assemble edge still present; "
+        "should have been replaced by build → completeness_check"
+    )
+
+    # 7c: fix_build → assemble edge exists (fix_build bypasses completeness_check).
+    fix_build_targets = set()
+    for edge in edges:
+        src = edge[0] if isinstance(edge, tuple) else edge.get("source_id") or edge.source
+        tgt = edge[1] if isinstance(edge, tuple) else edge.get("target_id") or edge.target
+        if src == "fix_build":
+            fix_build_targets.add(tgt)
+
+    assert "assemble" in fix_build_targets, (
+        f"Expected fix_build → assemble edge; found fix_build targets: {fix_build_targets}"
+    )
+    assert "completeness_check" not in fix_build_targets, (
+        "fix_build → completeness_check edge found; "
+        "fix_build must bypass completeness_check per B-COMP-01"
+    )
